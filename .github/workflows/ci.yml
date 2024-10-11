@@ -25,7 +25,8 @@ jobs:
 
       - name: Build Repository
         run: |
-          # Don't need CC and CXX, Clang/LLVM 14.0.3 by default
+          export CC=$(brew --prefix llvm@14)/bin/clang
+          export CXX=$(brew --prefix llvm@14)/bin/clang++
           
           mkdir build && cd build
           
