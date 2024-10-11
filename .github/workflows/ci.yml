@@ -29,11 +29,13 @@ jobs:
           export CXX=$(brew --prefix llvm@15)/bin/clang++
           
           mkdir build && cd build
+          
           if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
-            cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin-x86_64
+            cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc
           elif [[ "${{ matrix.architecture }}" == "arm64" ]]; then
-            cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin-arm64
+            cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc
           fi
+          
           make
 
       - name: Upload Build Artifact
