@@ -10,11 +10,8 @@ on:
       - develop
       - main
 jobs:
-  macos-static-builds:
-    runs-on: macos-14 # Apple silicon chip
-    strategy:
-      matrix:
-        architecture: [ x86_64, arm64 ]
+  macos-static-builds-x86_64:
+    runs-on: macos-13 # Intel Chip
     steps:
       - name: Check dependencies
         run: |
@@ -25,16 +22,40 @@ jobs:
 
       - name: Build Repository
         run: |
-          export CC=$(brew --prefix llvm@14)/bin/clang
-          export CXX=$(brew --prefix llvm@14)/bin/clang++
+          export CC=$(brew --prefix llvm@15)/bin/clang
+          export CXX=$(brew --prefix llvm@15)/bin/clang++
+
+          mkdir build && cd build
+          
+          
+          cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON
+          
+          make
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.architecture }}-build
+          path: ./build
+
+  macos-static-build-arm64:
+    runs-on: macos-14 # Apple silicon chip
+    steps:
+      - name: Check dependencies
+        run: |
+          cmake --version
+
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Build Repository
+        run: |
+          export CC=$(brew --prefix llvm@15)/bin/clang
+          export CXX=$(brew --prefix llvm@15)/bin/clang++
           
           mkdir build && cd build
           
-          if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
-            cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc -DCMAKE_C_FLAGS="-arch x86_64" -DCMAKE_CXX_FLAGS="-arch x86_64"
-          elif [[ "${{ matrix.architecture }}" == "arm64" ]]; then
-            cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc -DCMAKE_C_FLAGS="-arch arm64" -DCMAKE_CXX_FLAGS="-arch arm64"
-          fi
+          cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON
           
           make
 
