@@ -11,7 +11,7 @@ on:
       - main
 jobs:
   macos-static-builds:
-    runs-on: macos-14
+    runs-on: macos-14 # Apple silicon chip
     strategy:
       matrix:
         architecture: [ x86_64, arm64 ]
@@ -31,9 +31,9 @@ jobs:
           mkdir build && cd build
           
           if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
-            cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc
+            cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc -DCMAKE_C_FLAGS="-arch x86_64" -DCMAKE_CXX_FLAGS="-arch x86_64"
           elif [[ "${{ matrix.architecture }}" == "arm64" ]]; then
-            cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc
+            cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc -DCMAKE_C_FLAGS="-arch arm64" -DCMAKE_CXX_FLAGS="-arch arm64"
           fi
           
           make
