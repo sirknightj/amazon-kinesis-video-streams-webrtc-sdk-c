@@ -15,9 +15,6 @@ jobs:
     strategy:
       matrix:
         architecture: [ x86_64, arm64 ]
-    env:
-      CC: $(brew --prefix llvm@15)/bin/clang
-      CXX: $(brew --prefix llvm@15)/bin/clang++
     steps:
       - name: Check dependencies
         run: |
@@ -28,6 +25,9 @@ jobs:
 
       - name: Build Repository
         run: |
+          export CC=$(brew --prefix llvm@15)/bin/clang
+          export CXX=$(brew --prefix llvm@15)/bin/clang++
+          
           mkdir build && cd build
           if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
             cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DBUILD_STATIC_LIBS=ON -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=darwin-x86_64
