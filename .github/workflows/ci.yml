@@ -9,13 +9,19 @@ on:
     branches:
       - develop
       - main
+
 jobs:
-  macos-static-builds-x86_64:
-    runs-on: macos-13 # Intel Chip
+  macos-static-builds:
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+        threadpool: [ON, OFF]
+        iot_credentials: [ON, OFF]
+        ssl_lib: [openssl, mbedtls]
+    runs-on: ${{ matrix.arch == 'x86_64' && 'macos-13' || 'macos-14' }}
     steps:
       - name: Check dependencies
-        run: |
-          cmake --version
+        run: cmake --version
 
       - name: Clone repository
         uses: actions/checkout@v4
@@ -27,40 +33,25 @@ jobs:
 
           mkdir build && cd build
           
-          
-          cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON
+          cmake .. \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_C_COMPILER=$CC \
+            -DCMAKE_CXX_COMPILER=$CXX \
+            -DBUILD_STATIC_LIBS=ON \
+            -DENABLE_KVS_THREADPOOL=${{ matrix.threadpool }} \
+            -DIOT_CORE_ENABLE_CREDENTIALS=${{ matrix.iot_credentials }} \
+            -DUSE_OPENSSL=${{ matrix.ssl_lib == 'openssl' && 'ON' || 'OFF' }} \
+            -DUSE_MBEDTLS=${{ matrix.ssl_lib == 'mbedtls' && 'ON' || 'OFF' }}
           
           make
+          
+          cd ..
+          mkdir -p output/build
+          mv build output/build
+          mv certs output
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.architecture }}-build
-          path: ./build
-
-  macos-static-build-arm64:
-    runs-on: macos-14 # Apple silicon chip
-    steps:
-      - name: Check dependencies
-        run: |
-          cmake --version
-
-      - name: Clone repository
-        uses: actions/checkout@v4
-
-      - name: Build Repository
-        run: |
-          export CC=$(brew --prefix llvm@15)/bin/clang
-          export CXX=$(brew --prefix llvm@15)/bin/clang++
-          
-          mkdir build && cd build
-          
-          cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DBUILD_STATIC_LIBS=ON
-          
-          make
-
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-${{ matrix.architecture }}-build
-          path: ./build
+          name: macos-${{ matrix.arch }}-${{ matrix.threadpool }}-${{ matrix.iot_credentials }}-${{ matrix.ssl_lib }}
+          path: ./output
