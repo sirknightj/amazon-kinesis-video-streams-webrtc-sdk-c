@@ -52,13 +52,15 @@ jobs:
             -DUSE_OPENSSL=${{ matrix.ssl_lib == 'openssl' && 'ON' || 'OFF' }} \
             -DUSE_MBEDTLS=${{ matrix.ssl_lib == 'mbedtls' && 'ON' || 'OFF' }}
           
+          make
+          
           cd ..
-          mkdir -p output/build
-          mv build output/build
+          mkdir output
+          mv build output
           mv certs output
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.arch }}-threadpool_${{ matrix.threadpool }}-iot_${{ matrix.iot_credentials }}-ssl_${{ matrix.ssl_lib }}
+          name: macos-${{ matrix.arch }}-threadpool_${{ matrix.threadpool }}-iot_${{ matrix.iot_credentials }}-${{ matrix.ssl_lib }}
           path: ./output
