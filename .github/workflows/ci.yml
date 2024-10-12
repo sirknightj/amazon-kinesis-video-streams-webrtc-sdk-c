@@ -31,8 +31,8 @@ jobs:
         run: |
           cmake --version
           xcode-select -p
-          echo "CC=$(xcode-select -p)/usr/bin/clang" >> $GITHUB_ENV
-          echo "CXX=$(xcode-select -p)/usr/bin/clang++" >> $GITHUB_ENV
+          echo "CC=$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang" >> $GITHUB_ENV
+          echo "CXX=$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++" >> $GITHUB_ENV
           clang --version
 
       - name: Clone repository
