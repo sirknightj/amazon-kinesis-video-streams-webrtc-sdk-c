@@ -24,7 +24,8 @@ jobs:
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          # macos-13 runner image only supports up to xcode 15.2
+          xcode-version: ${{ matrix.arch == 'x86_64' && '15.2' || '15.4' }}
 
       - name: Check dependencies and set compiler paths
         run: |
