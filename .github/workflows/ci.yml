@@ -672,7 +672,7 @@ jobs:
   valgrind-check:
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
     env:
       AWS_KVS_LOG_LEVEL: 7
     permissions:
