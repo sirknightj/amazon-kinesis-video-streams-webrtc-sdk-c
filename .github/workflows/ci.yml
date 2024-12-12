@@ -14,12 +14,26 @@ jobs:
       matrix:
         os:
           - name: mips-32
-            runner: Ubuntu-22.04
+            runner: ubuntu:22.04
             install: gcc-mips-linux-gnu g++-mips-linux-gnu
             cc: mips-linux-gnu-gcc
             cxx: mips-linux-gnu-g++
             additional-cmake: -DBUILD_OPENSSL_PLATFORM=linux-mips32 -DBUILD_LIBSRTP_DESTINATION_PLATFORM=mips-unknown-linux-gnu
             file-contents: "ELF 32-bit MSB executable, MIPS, MIPS32"
+          - name: arm-32
+            runner: ubuntu:22.04
+            install: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+            cc: arm-linux-gnueabihf-gcc
+            cxx: arm-linux-gnueabihf-g++
+            additional-cmake: -DBUILD_OPENSSL_PLATFORM=linux-arm32 -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-gnu
+            file-contents: "ELF 32-bit LSB executable, ARM"
+          - name: arm-64
+            runner: ubuntu:22.04
+            install: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            cc: aarch64-linux-gnu-gcc
+            cxx: aarch64-linux-gnu-g++
+            additional-cmake: -DBUILD_OPENSSL_PLATFORM=linux-arm64 -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm64-unknown-linux-gnu
+            file-contents: "ELF 64-bit LSB executable, ARM"
         config:
           - name: Shared OpenSSL
             cmake_flags: -DBUILD_TEST=ON
@@ -31,11 +45,9 @@ jobs:
             cmake_flags: -DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE -DUSE_OPENSSL=OFF
               -DUSE_MBEDTLS=ON
       fail-fast: false
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    runs-on: ${{ matrix.os.runner }}
+    runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image:  ${{ matrix.os.runner }}
     name: ${{ matrix.os.name }}, ${{ matrix.config.name }}
     steps:
       - name: Checkout repository
