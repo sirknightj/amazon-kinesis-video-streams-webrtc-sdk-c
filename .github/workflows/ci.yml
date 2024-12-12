@@ -14,28 +14,28 @@ jobs:
       matrix:
         compiler:
           - name: mips-32
-            runner: ubuntu:22.04
+            runner: public.ecr.aws/ubuntu/ubuntu:22.04_stable
             install: gcc-mips-linux-gnu g++-mips-linux-gnu
             cc: mips-linux-gnu-gcc
             cxx: mips-linux-gnu-g++
             cmake_flags: -DBUILD_OPENSSL_PLATFORM=linux-mips32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=mips-unknown-linux-gnu
             file-expected-output: "ELF 32-bit MSB executable, MIPS, MIPS32"
           - name: arm-32
-            runner: ubuntu:22.04
+            runner: public.ecr.aws/ubuntu/ubuntu:22.04_stable
             install: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
             cc: arm-linux-gnueabihf-gcc
             cxx: arm-linux-gnueabihf-g++
             cmake_flags: -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
             file-expected-output: "ELF 32-bit LSB pie executable, ARM"
           - name: arm-64
-            runner: ubuntu:22.04
+            runner: public.ecr.aws/ubuntu/ubuntu:22.04_stable
             install: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
             cc: aarch64-linux-gnu-gcc
             cxx: aarch64-linux-gnu-g++
             cmake_flags: -DBUILD_OPENSSL_PLATFORM=linux-generic64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
             file-expected-output: "ELF 64-bit LSB pie executable, ARM"
           - name: aarch-64
-            runner: ubuntu:22.04
+            runner: public.ecr.aws/ubuntu/ubuntu:22.04_stable
             install: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
             cc: aarch64-linux-gnu-gcc
             cxx: aarch64-linux-gnu-g++
