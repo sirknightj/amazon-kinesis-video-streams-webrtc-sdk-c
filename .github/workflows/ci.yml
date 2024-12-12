@@ -56,7 +56,7 @@ jobs:
           cd build
 
 
-          cmake .. ${{ matrix.config.additional-cmake }} -DENABLE_AWS_SDK_IN_TESTS=OFF
+          cmake .. ${{ matrix.config.cmake_flags }} ${{ matrix.os.additional-cmake }} -DENABLE_AWS_SDK_IN_TESTS=OFF
 
           make -j$(sysctl -n hw.ncpu)
         shell: bash
