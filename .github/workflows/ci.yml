@@ -12,7 +12,7 @@ jobs:
   linux-cross-compilation:
     strategy:
       matrix:
-        os:
+        compiler:
           - name: mips-32
             runner: ubuntu:22.04
             install: gcc-mips-linux-gnu g++-mips-linux-gnu
@@ -42,44 +42,50 @@ jobs:
             additional-cmake: -DBUILD_OPENSSL_PLATFORM=linux-aarch64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
             file-contents: "ELF 64-bit LSB pie executable, ARM"
 
-        config:
-          - name: Shared OpenSSL
-            cmake_flags: -DBUILD_TEST=ON
-          - name: Static OpenSSL
-            cmake_flags: -DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE
-          - name: Shared MbedTLS
-            cmake_flags: -DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          - name: Static MbedTLS
-            cmake_flags: -DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE -DUSE_OPENSSL=OFF
-              -DUSE_MBEDTLS=ON
+        build-type:
+          - name: Shared
+            cmake_flags: -DBUILD_STATIC_LIBS=OFF
+          - name: Static
+            cmake_flags: -DBUILD_STATIC_LIBS=ON
+
+        crypto:
+          - name: OpenSSL
+            cmake_flags: -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF
+          - name: MbedTLS
+            cmake_flags: -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+
+        threadpool:
+          - name: Threadpool On
+            cmake_flags: -DENABLE_KVS_THREADPOOL=ON
+          - name: Threadpool Off
+            cmake_flags: -DENABLE_KVS_THREADPOOL=OFF
+
       fail-fast: false
     runs-on: ubuntu-latest
     container:
-      image:  ${{ matrix.os.runner }}
-    name: ${{ matrix.os.name }}, ${{ matrix.config.name }}
+      image:  ${{ matrix.compiler.runner }}
+    name: ${{ matrix.compiler.name }}, ${{ matrix.build-type.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y build-essential cmake git pkg-config file ${{ matrix.os.install }}
-      - name: Configure and build ${{ matrix.config.name }}
-        run: >
-          export CC=${{ matrix.os.cc }}
-
-          export CXX=${{ matrix.os.cxx }}
-
+          apt-get install -y build-essential cmake git pkg-config file ${{ matrix.compiler.install }}
+      - name: Configure and build ${{ matrix.compiler.name }}, ${{ matrix.build-type.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}
+        run: |
+          export CC=${{ matrix.compiler.cc }}
+          export CXX=${{ matrix.compiler.cxx }}
           echo "Using $CC and $CXX"
-
-
+          
           mkdir -p build
-
           cd build
-
-
-          cmake .. ${{ matrix.config.cmake_flags }} ${{ matrix.os.additional-cmake }} -DENABLE_AWS_SDK_IN_TESTS=OFF
-
+          
+          cmake .. -DENABLE_AWS_SDK_IN_TESTS=OFF \
+            ${{ matrix.build-type.cmake_flags }} \
+            ${{ matrix.crypto.cmake_flags }} \
+            ${{ matrix.compiler.additional-cmake }} \
+            ${{ matrix.threadpool.cmake_flags }}
           make -j$(sysctl -n hw.ncpu)
         shell: bash
       - name: Check test file is compiled correctly
@@ -92,6 +98,6 @@ jobs:
           readelf -a ./tst/webrtc_client_test
           readelf -a ./samples/kvsWebrtcClientMaster
           
-          file ./tst/webrtc_client_test | grep "${{ matrix.os.file-contents }}"
-          file ./samples/kvsWebrtcClientMaster | grep "${{ matrix.os.file-contents }}"
+          file ./tst/webrtc_client_test | grep "${{ matrix.compiler.file-contents }}"
+          file ./samples/kvsWebrtcClientMaster | grep "${{ matrix.compiler.file-contents }}"
         shell: bash
