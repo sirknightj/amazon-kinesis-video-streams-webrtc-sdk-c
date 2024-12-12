@@ -64,6 +64,9 @@ jobs:
         run: |
           cd build
           
+          file ./tst/webrtc_client_test
+          file ./samples/kvsWebrtcClientMaster
+          
           readelf -a ./tst/webrtc_client_test
           readelf -a ./samples/kvsWebrtcClientMaster
           
