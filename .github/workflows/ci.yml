@@ -15,7 +15,7 @@ jobs:
         os:
           - name: mips-32
             runner: Ubuntu-22.04
-            install: gcc-mips-linux-gnu g++-mips-linux-gnu
+            install: gcc-mips-linux-gnu g++-mips-linux-gnu zlib1g-dev
             cc: mips-linux-gnu-gcc
             cxx: mips-linux-gnu-g++
             additional-cmake: -DBUILD_OPENSSL_PLATFORM=linux-mips32 -DBUILD_LIBSRTP_DESTINATION_PLATFORM=mips-unknown-linux-gnu
