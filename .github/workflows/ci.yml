@@ -64,8 +64,8 @@ jobs:
         run: |
           cd build
           
-          readelf ./tst/webrtc_client_test
-          readelf ./samples/kvsWebrtcClientMaster
+          readelf -a ./tst/webrtc_client_test
+          readelf -a ./samples/kvsWebrtcClientMaster
           
           file ./tst/webrtc_client_test | grep "${{ matrix.os.file-contents }}"
           file ./samples/kvsWebrtcClientMaster | grep "${{ matrix.os.file-contents }}"
