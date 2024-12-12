@@ -491,7 +491,7 @@ if (BUILD_SAMPLE)
   add_subdirectory(samples)
 endif()
 
-if(BUILD_TEST)
+if(BUILD_TEST AND NOT ENABLE_AWS_SDK_IN_TESTS)
   # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
   if(NOT WIN32)
     find_package(ZLIB REQUIRED)
