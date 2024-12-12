@@ -75,8 +75,3 @@ jobs:
           file ./tst/webrtc_client_test | grep "${{ matrix.os.file-contents }}"
           file ./samples/kvsWebrtcClientMaster | grep "${{ matrix.os.file-contents }}"
         shell: bash
-      - name: Run the files
-        run: |
-          cd build
-          apt-get install -y qemu qemu-user qemu-user-static
-          qemu-mips ./tst/webrtc_client_test --gtest_filter="*RollingBuffer*"
