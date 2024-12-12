@@ -62,5 +62,5 @@ jobs:
         shell: bash
       - name: Check test file is compiled correctly
         run: |
-          file ./tst/webrtc_client_test | grep ${{ matrix.os.file-contents }}
+          file ./tst/webrtc_client_test | grep "${{ matrix.os.file-contents }}"
         shell: bash
