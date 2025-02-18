@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          cmake .. -DUSE_MBEDTLS=ON -DUSE_OPENSSL=OFF
           make -j$(sysctl -n hw.ncpu)
         shell: bash
 
