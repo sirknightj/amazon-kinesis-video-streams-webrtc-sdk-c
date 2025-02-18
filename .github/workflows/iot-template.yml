@@ -1,0 +1,118 @@
+name: AWS IoT Thing Setup
+
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        required: true
+        type: string
+        description: "AWS region to create IoT resources"
+      thing-name:
+        required: true
+        type: string
+        description: "AWS IoT thing name to create"
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_SESSION_TOKEN:
+        required: true
+
+jobs:
+  create-iot-resources:
+    runs-on: ubuntu-latest
+    outputs:
+      cert_arn: ${{ steps.set-vars.outputs.cert_arn }}
+      cert_id: ${{ steps.set-vars.outputs.cert_id }}
+      role_alias: ${{ steps.set-vars.outputs.role_alias }}
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
+
+    steps:
+      - name: Generate Unique Names
+        id: set-vars
+        run: |
+          THING_NAME="${{ inputs.thing-name }}"
+#          ROLE_NAME="iot-role-$(uuidgen)"
+#          ROLE_ALIAS="iot-role-alias-$(uuidgen)"
+#
+          echo "THING_NAME=$THING_NAME" >> $GITHUB_ENV
+#          echo "ROLE_NAME=$ROLE_NAME" >> $GITHUB_ENV
+#          echo "ROLE_ALIAS=$ROLE_ALIAS" >> $GITHUB_ENV
+#          echo "thing_name=$THING_NAME" >> $GITHUB_OUTPUT
+#          echo "role_alias=$ROLE_ALIAS" >> $GITHUB_OUTPUT
+          echo "$THING_NAME"
+
+#      - name: Create IoT Thing and Certificates
+#        run: |
+#          aws iot create-thing --thing-name "$THING_NAME"
+#          CERT_OUTPUT=$(aws iot create-keys-and-certificate --set-as-active)
+#          echo "$CERT_OUTPUT" > cert_output.json
+#          CERT_ARN=$(jq -r .certificateArn cert_output.json)
+#          CERT_ID=$(jq -r .certificateId cert_output.json)
+#
+#          echo "CERT_ARN=$CERT_ARN" >> $GITHUB_ENV
+#          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
+#          echo "cert_arn=$CERT_ARN" >> $GITHUB_OUTPUT
+#          echo "cert_id=$CERT_ID" >> $GITHUB_OUTPUT
+#
+#      - name: Create IoT Policy and Attach
+#        run: |
+#          cat > iot-policy.json <<EOF
+#          {
+#              "Version": "2012-10-17",
+#              "Statement": [
+#                  {
+#                      "Effect": "Allow",
+#                      "Action": "iot:AssumeRoleWithCertificate",
+#                      "Resource": "arn:aws:iot:*:*:rolealias/$ROLE_ALIAS"
+#                  }
+#              ]
+#          }
+#          EOF
+#          aws iot create-policy --policy-name "$THING_NAME-Policy" --policy-document file://iot-policy.json
+#          aws iot attach-policy --policy-name "$THING_NAME-Policy" --target "$CERT_ARN"
+#          aws iot attach-thing-principal --thing-name "$THING_NAME" --principal "$CERT_ARN"
+
+  use-iot-credentials:
+    runs-on: ubuntu-latest
+    needs: create-iot-resources
+
+    steps:
+      - name: Set environment variables
+        run: |
+          echo "Using IoT credentials for thing: $THING_NAME"
+
+  cleanup-iot-resources:
+    runs-on: ubuntu-latest
+    needs: use-iot-credentials
+    if: always()  # Ensures cleanup runs even if the previous job fails
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
+
+    steps:
+      - name: Cleanup IoT Resources
+        env:
+          THING_NAME: ${{ inputs.thing_name }}
+          CERT_ARN: ${{ needs.create-iot-resources.outputs.cert_arn }}
+          CERT_ID: ${{ needs.create-iot-resources.outputs.cert_id }}
+          ROLE_ALIAS: ${{ needs.create-iot-resources.outputs.role_alias }}
+        run: |
+          echo "Cleaning up IoT resources for thing: $THING_NAME"
+
+#          aws iot detach-policy --policy-name "$THING_NAME-Policy" --target "$CERT_ARN" || true
+#          aws iot detach-thing-principal --thing-name "$THING_NAME" --principal "$CERT_ARN" || true
+#          aws iot delete-policy --policy-name "$THING_NAME-Policy" || true
+#          aws iot update-certificate --certificate-id "$CERT_ID" --new-status INACTIVE || true
+#          aws iot delete-certificate --certificate-id "$CERT_ID" || true
+#          aws iot delete-thing --thing-name "$THING_NAME" || true
+#          aws iot delete-role-alias --role-alias "$ROLE_ALIAS" || true

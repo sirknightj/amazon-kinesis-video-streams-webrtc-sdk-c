@@ -23,30 +23,43 @@ jobs:
         run: |
           brew install coreutils
 
-      - name: Build
+      - name: Setup IoT
+        uses: ./.github/workflows/iot-thing-template.yml
+        with:
+          aws-region: us-west-2
+        secrets:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Test
         run: |
-          mkdir build
-          cd build
-          cmake .. -DUSE_MBEDTLS=ON -DUSE_OPENSSL=OFF -DIOT_CORE_ENABLE_CREDENTIALS=ON
-          make -j$(sysctl -n hw.ncpu)
-        shell: bash
+          echo "Hi! Iot thing name: $THING_NAME"
 
-      - name: Check samples
-        working-directory: ./build
-        env:
-          AWS_IOT_CORE_CREDENTIAL_ENDPOINT: ${{ secrets.AWS_IOT_CORE_CREDENTIAL_ENDPOINT }}
-          AWS_IOT_CORE_ROLE_ALIAS: ${{ secrets.AWS_IOT_CORE_ROLE_ALIAS }}
-          AWS_IOT_CORE_THING_NAME: ${{ secrets.AWS_IOT_CORE_THING_NAME }}
-          AWS_IOT_CORE_PRIVATE_KEY_CONTENTS: ${{ secrets.AWS_IOT_CORE_PRIVATE_KEY }}
-          AWS_IOT_CORE_CERT_CONTENTS: ${{ secrets.AWS_IOT_CORE_CERT }}
-          AWS_IOT_CORE_PRIVATE_KEY: ./private.pem.key
-          AWS_IOT_CORE_CERT: ./certificate.pem.crt
-
-        run: |
-          echo "$AWS_IOT_CORE_PRIVATE_KEY_CONTENTS" > "$AWS_IOT_CORE_PRIVATE_KEY"
-          echo "$AWS_IOT_CORE_CERT_CONTENTS" > "$AWS_IOT_CORE_CERT"
-
-          gtimeout --signal=SIGINT --kill-after=30s 15s ./samples/kvsWebRTCClientMaster "$CHANNEL_NAME"
-
-          echo "Exited with: $?";
-        shell: bash
+#      - name: Build
+#        run: |
+#          mkdir build
+#          cd build
+#          cmake .. -DUSE_MBEDTLS=ON -DUSE_OPENSSL=OFF -DIOT_CORE_ENABLE_CREDENTIALS=ON
+#          make -j$(sysctl -n hw.ncpu)
+#        shell: bash
+#
+#      - name: Check samples
+#        working-directory: ./build
+#        env:
+#          AWS_IOT_CORE_CREDENTIAL_ENDPOINT: ${{ secrets.AWS_IOT_CORE_CREDENTIAL_ENDPOINT }}
+#          AWS_IOT_CORE_ROLE_ALIAS: ${{ secrets.AWS_IOT_CORE_ROLE_ALIAS }}
+#          AWS_IOT_CORE_THING_NAME: ${{ secrets.AWS_IOT_CORE_THING_NAME }}
+#          AWS_IOT_CORE_PRIVATE_KEY_CONTENTS: ${{ secrets.AWS_IOT_CORE_PRIVATE_KEY }}
+#          AWS_IOT_CORE_CERT_CONTENTS: ${{ secrets.AWS_IOT_CORE_CERT }}
+#          AWS_IOT_CORE_PRIVATE_KEY: ./private.pem.key
+#          AWS_IOT_CORE_CERT: ./certificate.pem.crt
+#
+#        run: |
+#          echo "$AWS_IOT_CORE_PRIVATE_KEY_CONTENTS" > "$AWS_IOT_CORE_PRIVATE_KEY"
+#          echo "$AWS_IOT_CORE_CERT_CONTENTS" > "$AWS_IOT_CORE_CERT"
+#
+#          gtimeout --signal=SIGINT --kill-after=30s 15s ./samples/kvsWebRTCClientMaster "$CHANNEL_NAME"
+#
+#          echo "Exited with: $?";
+#        shell: bash
