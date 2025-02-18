@@ -10,9 +10,7 @@ on:
 
 jobs:
   iot-test:
-    permissions:
-      id-token: write
-      contents: read
+    environment: IoT Environment
 
     runs-on: macos-15
     name:
@@ -23,13 +21,13 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          brew install libwebsockets coreutils srtp libusrsctp
+          brew install coreutils srtp libusrsctp libwebsockets 
 
       - name: Build
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_DEPENDENCIES=OFF
+          cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make -j$(sysctl -n hw.ncpu)
         shell: bash
 
