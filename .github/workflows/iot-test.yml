@@ -21,7 +21,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          brew install coreutils srtp libusrsctp libwebsockets mbedtls
+          brew install coreutils
 
       - name: Build
         run: |
