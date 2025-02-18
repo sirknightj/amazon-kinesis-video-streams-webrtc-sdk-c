@@ -21,9 +21,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install GStreamer
+      - name: Install Dependencies
         run: |
-          brew install gstreamer coreutils
+          brew install libwebsockets coreutils
 
       - name: Build
         run: |
