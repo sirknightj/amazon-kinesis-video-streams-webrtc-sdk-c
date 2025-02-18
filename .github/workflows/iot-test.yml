@@ -1,0 +1,42 @@
+iot-test:
+  permissions:
+    id-token: write
+    contents: read
+
+  runs-on: macos-15
+  name:
+
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install GStreamer
+      run: |
+        brew install gstreamer coreutils
+
+    - name: Build
+        mkdir build
+        cd build
+        cmake .. -DBUILD_DEPENDENCIES=OFF
+        make -j$(sysctl -n hw.ncpu)
+      shell: bash
+
+    - name: Check samples
+      working-directory: ./build
+      env:
+        AWS_IOT_CORE_CREDENTIAL_ENDPOINT: ${{ secrets.AWS_IOT_CORE_CREDENTIAL_ENDPOINT }}
+        AWS_IOT_CORE_ROLE_ALIAS: ${{ secrets.AWS_IOT_CORE_ROLE_ALIAS }}
+        AWS_IOT_CORE_THING_NAME: ${{ secrets.AWS_IOT_CORE_THING_NAME }}
+        AWS_IOT_CORE_PRIVATE_KEY_CONTENTS: ${{ secrets.AWS_IOT_CORE_PRIVATE_KEY }}
+        AWS_IOT_CORE_CERT_CONTENTS: ${{ secrets.AWS_IOT_CORE_CERT }}
+        AWS_IOT_CORE_PRIVATE_KEY: ./private.pem.key
+        AWS_IOT_CORE_CERT: ./certificate.pem.crt
+
+      run: |
+        echo "$AWS_IOT_CORE_PRIVATE_KEY_CONTENTS" > "$AWS_IOT_CORE_PRIVATE_KEY"
+        echo "$AWS_IOT_CORE_CERT_CONTENTS" > "$AWS_IOT_CORE_CERT"
+
+        gtimeout --signal=SIGINT --kill-after=30s 15s ./kvsWebRTCClientMaster "$CHANNEL_NAME"
+        
+        echo "Exited with: $?";
+      shell: bash
