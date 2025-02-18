@@ -13,24 +13,34 @@ jobs:
     environment: IoT Environment
 
     runs-on: macos-15
-    name:
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_DEFAULT_REGION: us-west-2
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: |
-          brew install coreutils
+#      - name: Install Dependencies
+#        run: |
+#          brew install coreutils
 
-      - name: Setup IoT
-        uses: ./.github/workflows/iot-thing-template.yml
-        with:
-          aws-region: us-west-2
+      - name: Create IoT thing
+        run: |
+          echo "THING_NAME=my-gh-test-thing" >> $GITHUB_ENV
+          aws iot create-thing --thing-name "$THING_NAME"
 
       - name: Test
         run: |
           echo "Hi! Iot thing name: $THING_NAME"
+
+      - name: Cleanup IoT
+        if: always()
+        run: |
+          aws iot delete-thing --thing-name "$THING_NAME"
 
 #      - name: Build
 #        run: |
