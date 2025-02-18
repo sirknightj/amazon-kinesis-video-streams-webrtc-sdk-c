@@ -31,7 +31,7 @@ jobs:
       - name: Create IoT thing
         run: |
           echo "THING_NAME=my-gh-test-thing" >> $GITHUB_ENV
-          aws iot create-thing --thing-name "$THING_NAME"
+          aws iot create-thing --thing-name my-gh-test-thing
 
       - name: Test
         run: |
