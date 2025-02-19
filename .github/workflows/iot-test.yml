@@ -91,7 +91,7 @@ jobs:
                   "kinesisvideo:ConnectAsMaster",
                   "kinesisvideo:GetIceServerConfig"
                 ],
-                "Resource": "arn:aws:kinesisvideo:*:*:channel/${credentials-iot:ThingName}/*"
+                "Resource": "arn:aws:kinesisvideo:*:*:channel/\${credentials-iot:ThingName}/*"
               }
             ]
           }
@@ -167,7 +167,9 @@ jobs:
       - name: Check samples
         working-directory: ./build
         run: |
-          gtimeout --signal=SIGINT --kill-after=30s 15s ./samples/kvsWebRTCClientMaster "$THING_NAME"
+          gtimeout --preserve-status \
+            --signal=SIGINT \
+            --kill-after=30s 15s ./samples/kvsWebRTCClientMaster "$THING_NAME"
 
           echo "Exited with: $?";
         shell: bash
