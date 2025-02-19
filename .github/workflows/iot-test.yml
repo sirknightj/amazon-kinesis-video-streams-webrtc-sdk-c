@@ -91,11 +91,12 @@ jobs:
                   "kinesisvideo:ConnectAsMaster",
                   "kinesisvideo:GetIceServerConfig"
                 ],
-                "Resource": "*"
+                "Resource": "arn:aws:kinesisvideo:*:*:channel/${credentials-iot:ThingName}/*"
               }
             ]
           }
           EOF
+          cat iam-assume-policy.json
           aws iam put-role-policy --role-name "$ROLE_NAME" \
             --policy-name "$POLICY_NAME" --policy-document 'file://iam-assume-policy.json'
           rm -rf iam-assume-policy.json
