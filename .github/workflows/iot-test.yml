@@ -92,7 +92,7 @@ jobs:
       - name: Create role alias
         run: |
           aws iot create-role-alias --role-alias $ROLE_ALIAS \
-            --role-arn ROLE_ARN \
+            --role-arn $ROLE_ARN \
             --credential-duration-seconds 3600 > iot-role-alias.json
           
           echo "IOT_ROLE_ALIAS_ARN=$(jq --raw-output '.roleAliasArn' iot-role-alias.json)" >> $GITHUB_ENV
