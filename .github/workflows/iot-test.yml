@@ -23,6 +23,7 @@ jobs:
       ROLE_NAME: my-gh-test-role
       POLICY_NAME: my-gh-test-policy
       ROLE_ALIAS: my-gh-role-alias
+      IOT_POLICY_NAME: my-gh-iot-policy
 
     steps:
       - name: Checkout repository
@@ -94,9 +95,32 @@ jobs:
             --role-arn $(jq --raw-output '.Role.Arn' iam-role.json) \
             --credential-duration-seconds 3600 > iot-role-alias.json
 
+      - name: Create IoT policy
+        run: |
+          cat > iot-policy-document.json <<EOF
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "iot:AssumeRoleWithCertificate"
+                ],
+                "Resource": "$(jq --raw-output '.roleAliasArn' iot-role-alias.json)"
+              }
+            ]
+          }
+          EOF
+          aws iot create-policy --policy-name $IOT_POLICY_NAME --policy-document 'file://iot-policy-document.json'
+
       - name: Test
         run: |
           echo "Hi! Iot thing name: $THING_NAME"
+
+      - name: Cleanup IoT policy
+        if: always()
+        run: |
+          aws iot delete-policy --policy-name $IOT_POLICY_NAME
 
       - name: Cleanup role alias
         if: always()
