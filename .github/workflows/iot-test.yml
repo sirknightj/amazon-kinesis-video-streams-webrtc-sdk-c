@@ -139,8 +139,9 @@ jobs:
 
       - name: Get endpoint
         run: |
-          echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=$(aws iot describe-endpoint \
-            --endpoint-type iot:CredentialProvider --output text)" >> $GITHUB_ENV
+          ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:CredentialProvider --output text)
+          echo "::add-mask::$ENDPOINT"
+          echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
 
       - name: Detach policy
         if: always()
