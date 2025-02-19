@@ -106,7 +106,7 @@ jobs:
             --credential-duration-seconds 3600 > iot-role-alias.json
           
           echo "IOT_ROLE_ALIAS_ARN=$(jq --raw-output '.roleAliasArn' iot-role-alias.json)" >> $GITHUB_ENV
-          echo "AWS_IOT_CORE_ROLE_ALIAS=$ROLE_ALIAS"
+          echo "AWS_IOT_CORE_ROLE_ALIAS=$ROLE_ALIAS" >> $GITHUB_ENV
           rm -rf iot-role-alias.json
 
       - name: Create IoT policy
