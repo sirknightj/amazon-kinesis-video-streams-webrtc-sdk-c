@@ -1,0 +1,79 @@
+#mac-tests:
+#  strategy:
+#    matrix:
+#      os:
+#        - name: Mac Intel
+#          runner: macos-13
+#        - name: Mac Apple Silicon
+#          runner: macos-15
+#      deps:
+#        - name: Deps On
+#          cmake_flags: "-DBUILD_DEPENDENCIES=ON"
+#        - name: Deps Off
+#          cmake_flags: "-DBUILD_DEPENDENCIES=OFF"
+#      data-channel:
+#        - name: DataChannel On
+#          cmake_flags: "-DENABLE_DATA_CHANNEL=ON"
+#        - name: DataChannel Off
+#          cmake_flags: "-DENABLE_DATA_CHANNEL=OFF"
+#      threadpool:
+#        - name: Threadpool On
+#          cmake_flags: "-DENABLE_KVS_THREADPOOL=ON"
+#        - name: Threadpool Off
+#          cmake_flags: "-DENABLE_KVS_THREADPOOL=OFF"
+#      crypto:
+#        - name: OpenSSL
+#          cmake_flags: "-DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
+#        - name: MbedTLS
+#          cmake_flags: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+#      file-type:
+#        - name: Shared
+#          cmake_flags: "-DBUILD_STATIC_LIBS=OFF"
+#        - name: Static
+#          cmake_flags: "-DBUILD_STATIC_LIBS=ON"
+#      samples-iot:
+#        - name: IoT creds
+#          cmake_flags: "-DIOT_CORE_ENABLE_CREDENTIALS=ON"
+#        - name: AWS creds
+#          cmake_flags: "-DIOT_CORE_ENABLE_CREDENTIALS=OFF"
+#      codec:
+#        - name: H264
+#          run_parameter: "h264"
+#        - name: H265
+#          run_parameter: "h265"
+#    fail-fast: false
+#
+#  env:
+#    AWS_KVS_LOG_LEVEL: 2
+#    CHANNEL_NAME: ${{ matrix.os.name }}-${{ matrix.deps.name }}-${{ matrix.crypto.name }}-${{ matrix.threadpool.name }}-${{ matrix.data-channel.name }}-${{ matrix.file-type.name }}-${{ matrix.samples-iot.name }}
+#  permissions:
+#    id-token: write
+#    contents: read
+#
+#  runs-on: ${{ matrix.os.runner }}
+#  name: ${{ matrix.os.name }}, ${{ matrix.deps.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}, ${{ matrix.data-channel.name }}, ${{ matrix.file-type.name }}, ${{ matrix.samples-iot.name }}
+#
+#  steps:
+#    - name: Checkout repository
+#      uses: actions/checkout@v4
+#
+#    - name: Install GStreamer
+#      run: |
+#        brew install gstreamer
+#
+#    - name: Build
+#        cmake .. -DBUILD_TEST=ON ${{ matrix.deps.cmake_flags }} ${{ matrix.data-channel.cmake_flags }} ${{ matrix.threadpool.cmake_flags }} ${{ matrix.crypto.cmake_flags }} ${{ matrix.file-type.cmake_flags }} , ${{ matrix.samples-iot.name }}
+#        make -j$(sysctl -n hw.ncpu)
+#      shell: bash
+#
+#    - name: Check samples
+#      working-directory: ./build
+#      run: |
+#        ./kvsWebRTCClientMaster "$CHANNEL_NAME"
+#      shell: bash
+#
+#    - name: Run tests
+#      run: |
+#        cd build
+#        ./tst/webrtc_client_test
+#      shell: bash

@@ -1,0 +1,237 @@
+name: Check Iot
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  iot-test:
+    environment: IoT Environment
+
+    runs-on: macos-15
+
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      AWS_DEFAULT_REGION: us-west-2
+      THING_NAME: my-gh-test-thing
+      ROLE_NAME: my-gh-test-role
+      POLICY_NAME: my-gh-test-policy
+      ROLE_ALIAS: my-gh-role-alias
+      IOT_POLICY_NAME: my-gh-iot-policy
+      AWS_KVS_LOG_LEVEL: 2
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          brew install coreutils
+
+      - name: Build Repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DUSE_MBEDTLS=ON -DUSE_OPENSSL=OFF -DIOT_CORE_ENABLE_CREDENTIALS=ON
+          make -j$(sysctl -n hw.ncpu)
+        shell: bash
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-west-2
+
+      - name: Create IoT thing
+        run: |
+          aws iot create-thing --thing-name "$THING_NAME" > iot-thing.json
+          echo "AWS_IOT_CORE_THING_NAME=$THING_NAME" >> $GITHUB_ENV
+          rm -rf iot-thing.json
+
+      - name: Create IAM role
+        run: |
+          cat > iot-assume-policy.json <<EOF
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "credentials.iot.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          }
+          EOF
+          aws iam create-role --role-name "$ROLE_NAME" --assume-role-policy-document 'file://iot-assume-policy.json' > iam-role.json
+          echo "ROLE_ARN=$(jq --raw-output '.Role.Arn' iam-role.json)" >> $GITHUB_ENV
+          rm -rf iot-assume-policy.json
+          rm -rf iam-role.json
+
+      - name: Create role permissions policy
+        run: |
+          cat > iam-assume-policy.json <<EOF
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "kinesisvideo:CreateSignalingChannel",
+                  "kinesisvideo:DescribeSignalingChannel",
+                  "kinesisvideo:GetSignalingChannelEndpoint",
+                  "kinesisvideo:ConnectAsMaster",
+                  "kinesisvideo:GetIceServerConfig"
+                ],
+                "Resource": "arn:aws:kinesisvideo:*:*:channel/\${credentials-iot:ThingName}/*"
+              }
+            ]
+          }
+          EOF
+          cat iam-assume-policy.json
+          aws iam put-role-policy --role-name "$ROLE_NAME" \
+            --policy-name "$POLICY_NAME" --policy-document 'file://iam-assume-policy.json'
+          rm -rf iam-assume-policy.json
+
+      - name: Create role alias
+        run: |
+          aws iot create-role-alias --role-alias $ROLE_ALIAS \
+            --role-arn $ROLE_ARN \
+            --credential-duration-seconds 3600 > iot-role-alias.json
+          
+          echo "IOT_ROLE_ALIAS_ARN=$(jq --raw-output '.roleAliasArn' iot-role-alias.json)" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_ROLE_ALIAS=$ROLE_ALIAS" >> $GITHUB_ENV
+          rm -rf iot-role-alias.json
+
+      - name: Create IoT policy
+        run: |
+          cat > iot-policy-document.json <<EOF
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "iot:AssumeRoleWithCertificate"
+                ],
+                "Resource": "$IOT_ROLE_ALIAS_ARN"
+              }
+            ]
+          }
+          EOF
+          aws iot create-policy --policy-name "$IOT_POLICY_NAME" \
+            --policy-document 'file://iot-policy-document.json' >/dev/null
+          rm -rf iot-policy-document.json
+
+      - name: Create keys
+        run: |
+          aws iot create-keys-and-certificate --set-as-active \
+            --certificate-pem-outfile certificate.pem.crt \
+            --public-key-outfile public.pem.key \
+            --private-key-outfile private.pem.key > certificate.json
+          
+          echo "CERT_ID=$(jq -r '.certificateId' certificate.json)" >> $GITHUB_ENV
+          echo "CERT_ARN=$(jq -r '.certificateArn' certificate.json)" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_CERT=$(pwd)/certificate.pem.crt" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_PRIVATE_KEY=$(pwd)/private.pem.key" >> $GITHUB_ENV
+          rm -rf public.pem.key
+          rm -rf certificate.json
+
+      - name: Attach policy
+        run: |
+          aws iot attach-policy --policy-name "$IOT_POLICY_NAME" --target "$CERT_ARN"
+
+      - name: Attach thing principal
+        run: |
+          aws iot attach-thing-principal --thing-name "$THING_NAME" --principal "$CERT_ARN"
+
+      - name: Get endpoint
+        run: |
+          ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:CredentialProvider --output text)
+          echo "::add-mask::$ENDPOINT"
+          echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
+
+      - name: Get CA Certificate
+        run: |
+          curl --silent 'https://www.amazontrust.com/repository/AmazonRootCA1.pem' --output AmazonRootCA1.pem
+          echo "AWS_KVS_CACERT_PATH=$(pwd)/AmazonRootCA1.pem" >> $GITHUB_ENV
+
+      - name: Check samples
+        working-directory: ./build
+        run: |
+          gtimeout --preserve-status \
+            --signal=SIGINT \
+            --kill-after=30s 15s ./samples/kvsWebRTCClientMaster "$THING_NAME"
+
+          echo "Exited with: $?";
+        shell: bash
+
+      - name: Delete signaling channel
+        if: always()
+        run: |
+          CHANNEL_ARN=$(aws kinesisvideo describe-signaling-channel --channel-name "$THING_NAME" --query "ChannelInfo.ChannelARN" --output text)
+          aws kinesisvideo delete-signaling-channel --channel-arn "$CHANNEL_ARN"
+
+      - name: Detach thing principal
+        if: always()
+        run: |
+          aws iot detach-thing-principal --thing-name "$THING_NAME" --principal "$CERT_ARN"
+
+      - name: Detach policy
+        if: always()
+        run: |
+          aws iot detach-policy --policy-name "$IOT_POLICY_NAME" --target "$CERT_ARN"
+
+      - name: Deactivate keys
+        if: always()
+        run: |
+          aws iot update-certificate --certificate-id "$CERT_ID" --new-status "INACTIVE"
+
+      - name: Delete keys
+        if: always()
+        run: |
+          rm -rf certificate.pem.crt
+          rm -rf private.pem.key
+          aws iot delete-certificate --certificate-id "$CERT_ID"
+
+      - name: Delete IoT policy
+        if: always()
+        run: |
+          aws iot delete-policy --policy-name "$IOT_POLICY_NAME"
+
+      - name: Delete role alias
+        if: always()
+        run: |
+          aws iot delete-role-alias --role-alias "$ROLE_ALIAS"
+
+      - name: Delete role permissions policy
+        if: always()
+        run: |
+          aws iam delete-role-policy --role-name "$ROLE_NAME" --policy-name "$POLICY_NAME"
+
+      - name: Delete IAM role
+        if: always()
+        run: |
+          aws iam delete-role --role-name "$ROLE_NAME"
+
+      - name: Delete IoT thing
+        if: always()
+        run: |
+          aws iot delete-thing --thing-name "$THING_NAME"
+
+      - name: Delete envs
+        if: always()
+        run: |
+          echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_PRIVATE_KEY=" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_ROLE_ALIAS=" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_THING_NAME=" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_CERT=" >> $GITHUB_ENV
