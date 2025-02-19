@@ -43,6 +43,7 @@ jobs:
         run: |
           aws iot create-thing --thing-name "$THING_NAME" > iot-thing.json
           echo "AWS_IOT_CORE_THING_NAME=$THING_NAME" >> $GITHUB_ENV
+          rm -rf iot-thing.json
 
       - name: Create IAM role
         run: |
@@ -61,7 +62,9 @@ jobs:
           }
           EOF
           aws iam create-role --role-name "$ROLE_NAME" --assume-role-policy-document 'file://iot-assume-policy.json' > iam-role.json
+          echo "ROLE_ARN=$(jq --raw-output '.Role.Arn' iam-role.json)" >> $GITHUB_ENV
           rm -rf iot-assume-policy.json
+          rm -rf iam-role.json
 
       - name: Create role permissions policy
         run: |
@@ -89,8 +92,11 @@ jobs:
       - name: Create role alias
         run: |
           aws iot create-role-alias --role-alias $ROLE_ALIAS \
-            --role-arn $(jq --raw-output '.Role.Arn' iam-role.json) \
+            --role-arn ROLE_ARN \
             --credential-duration-seconds 3600 > iot-role-alias.json
+          
+          echo "IOT_ROLE_ALIAS_ARN=$(jq --raw-output '.roleAliasArn' iot-role-alias.json)" >> $GITHUB_ENV
+          rm -rf iot-role-alias.json
 
       - name: Create IoT policy
         run: |
@@ -103,12 +109,13 @@ jobs:
                 "Action": [
                   "iot:AssumeRoleWithCertificate"
                 ],
-                "Resource": "$(jq --raw-output '.roleAliasArn' iot-role-alias.json)"
+                "Resource": "$IOT_ROLE_ALIAS_ARN"
               }
             ]
           }
           EOF
-          aws iot create-policy --policy-name $IOT_POLICY_NAME --policy-document 'file://iot-policy-document.json' >/dev/null
+          aws iot create-policy --policy-name "$IOT_POLICY_NAME" \
+            --policy-document 'file://iot-policy-document.json' >/dev/null
 
       - name: Create keys
         run: |
@@ -119,6 +126,9 @@ jobs:
           
           echo "CERT_ID=$(jq -r '.certificateId' certificate.json)" >> $GITHUB_ENV
           echo "CERT_ARN=$(jq -r '.certificateArn' certificate.json)" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_PRIVATE_KEY=$(pwd)/certificate.pem.crt"
+          rm -rf public.pem.key
+          rm -rf certificate.json
 
       - name: Attach policy
         run: |
@@ -128,6 +138,12 @@ jobs:
         run: |
           aws iot attach-thing-principal --thing-name "$THING_NAME" --principal "$CERT_ARN"
 
+      - name: Get endpoint
+        run: |
+          ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:CredentialProvider --output text)
+          echo "::add-mask::$ENDPOINT"
+          echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
+
       - name: Test
         run: |
           echo "Hi! Iot thing name: $THING_NAME"
@@ -136,12 +152,6 @@ jobs:
         if: always()
         run: |
           aws iot detach-thing-principal --thing-name "$THING_NAME" --principal "$CERT_ARN"
-
-      - name: Get endpoint
-        run: |
-          ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:CredentialProvider --output text)
-          echo "::add-mask::$ENDPOINT"
-          echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
 
       - name: Detach policy
         if: always()
@@ -182,6 +192,10 @@ jobs:
         if: always()
         run: |
           aws iot delete-thing --thing-name "$THING_NAME"
+
+      - name: check dir
+        run:
+          ls
 
 #      - name: Build
 #        run: |
