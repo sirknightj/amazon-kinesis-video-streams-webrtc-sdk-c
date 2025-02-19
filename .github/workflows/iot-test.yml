@@ -83,8 +83,8 @@ jobs:
             ]
           }
           EOF
-          aws iam put-role-policy --role-name $ROLE_NAME --policy-name $POLICY_NAME --policy-document 'file://iam-permission-document.json'
-          rm -rf iam-permission-document.json
+          aws iam put-role-policy --role-name $ROLE_NAME --policy-name $POLICY_NAME --policy-document 'file://iam-assume-policy.json'
+          rm -rf iam-assume-policy.json
 
       - name: Test
         run: |
