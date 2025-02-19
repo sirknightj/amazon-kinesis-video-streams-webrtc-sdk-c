@@ -18,6 +18,10 @@ jobs:
       id-token: write
       contents: read
 
+    env:
+      THING_NAME: my-gh-test-thing
+      ROLE_NAME: my-gh-test-role
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,16 +37,42 @@ jobs:
 #          brew install coreutils
 
       - name: Create IoT thing
+        id: create-iot-thing
         run: |
-          echo "THING_NAME=my-gh-test-thing" >> $GITHUB_ENV
-          aws iot create-thing --thing-name my-gh-test-thing
+          aws iot create-thing --thing-name "$THING_NAME" > iot-thing.json
+          echo "AWS_IOT_CORE_THING_NAME=$THING_NAME" >> $GITHUB_ENV
+
+      - name: Create IAM role
+        id: create-iam-role
+        run: |
+          cat > iot-assume-policy.json <<EOF
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "credentials.iot.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          }
+          EOF
+          aws iam create-role --role-name "$ROLE_NAME" --assume-role-policy-document 'file://iot-assume-policy.json' > iam-role.json
+          echo "ROLE_CREATED=yes" >> $GITHUB_ENV
 
       - name: Test
         run: |
           echo "Hi! Iot thing name: $THING_NAME"
 
-      - name: Cleanup IoT
-        if: always()
+      - name: Cleanup IAM role
+        if: ${{ env.ROLE_CREATED != '' }}
+        run: |
+          aws iam delete-role --role-name "$ROLE_NAME"
+
+      - name: Cleanup IoT thing
+        if: ${{ env.AWS_IOT_CORE_THING_NAME != '' }}
         run: |
           aws iot delete-thing --thing-name "$THING_NAME"
 
