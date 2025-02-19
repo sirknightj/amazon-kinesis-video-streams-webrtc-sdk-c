@@ -22,6 +22,7 @@ jobs:
       THING_NAME: my-gh-test-thing
       ROLE_NAME: my-gh-test-role
       POLICY_NAME: my-gh-test-policy
+      ROLE_ALIAS: my-gh-role-alias
 
     steps:
       - name: Checkout repository
@@ -83,12 +84,24 @@ jobs:
             ]
           }
           EOF
-          aws iam put-role-policy --role-name $ROLE_NAME --policy-name $POLICY_NAME --policy-document 'file://iam-assume-policy.json'
+          aws iam put-role-policy --role-name "$ROLE_NAME" \
+            --policy-name "$POLICY_NAME" --policy-document 'file://iam-assume-policy.json'
           rm -rf iam-assume-policy.json
+
+      - name: Create role alias
+        run: |
+          aws iot create-role-alias --role-alias $ROLE_ALIAS \
+            --role-arn $(jq --raw-output '.Role.Arn' iam-role.json) \
+            --credential-duration-seconds 3600 > iot-role-alias.json
 
       - name: Test
         run: |
           echo "Hi! Iot thing name: $THING_NAME"
+
+      - name: Cleanup role alias
+        if: always()
+        run: |
+          aws iot delete-role-alias --role-alias "$ROLE_ALIAS"
 
       - name: Cleanup role permissions policy
         if: always()
