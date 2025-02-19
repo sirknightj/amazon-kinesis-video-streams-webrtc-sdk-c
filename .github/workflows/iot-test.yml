@@ -171,7 +171,7 @@ jobs:
           echo "Exited with: $?";
         shell: bash
 
-      - name: Delete Channel
+      - name: Delete signaling channel
         if: always()
         run: |
           aws kinesis-video delete-signaling-channel --channel-arn $(aws kinesisvideo describe-signaling-channel --channel-name "demo-channel" --query "ChannelInfo.ChannelARN" --output text)
