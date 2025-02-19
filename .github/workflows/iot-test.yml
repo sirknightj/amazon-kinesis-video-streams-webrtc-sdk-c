@@ -91,7 +91,7 @@ jobs:
                   "kinesisvideo:ConnectAsMaster",
                   "kinesisvideo:GetIceServerConfig"
                 ],
-                "Resource": "arn:aws:kinesisvideo:*:*:stream/${credentials-iot:ThingName}/*"
+                "Resource": "arn:aws:kinesisvideo:*:*:channel/${credentials-iot:ThingName}/*"
               }
             ]
           }
@@ -174,7 +174,8 @@ jobs:
       - name: Delete signaling channel
         if: always()
         run: |
-          aws kinesis-video delete-signaling-channel --channel-arn $(aws kinesisvideo describe-signaling-channel --channel-name "demo-channel" --query "ChannelInfo.ChannelARN" --output text)
+          CHANNEL_ARN=$(aws kinesisvideo describe-signaling-channel --channel-name "$THING_NAME" --query "ChannelInfo.ChannelARN" --output text)
+          aws kinesisvideo delete-signaling-channel --channel-arn "$CHANNEL_ARN"
 
       - name: Detach thing principal
         if: always()
