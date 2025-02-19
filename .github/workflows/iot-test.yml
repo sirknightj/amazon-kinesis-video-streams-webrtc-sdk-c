@@ -116,6 +116,7 @@ jobs:
           EOF
           aws iot create-policy --policy-name "$IOT_POLICY_NAME" \
             --policy-document 'file://iot-policy-document.json' >/dev/null
+          rm -rf iot-policy-document.json
 
       - name: Create keys
         run: |
@@ -126,7 +127,8 @@ jobs:
           
           echo "CERT_ID=$(jq -r '.certificateId' certificate.json)" >> $GITHUB_ENV
           echo "CERT_ARN=$(jq -r '.certificateArn' certificate.json)" >> $GITHUB_ENV
-          echo "AWS_IOT_CORE_PRIVATE_KEY=$(pwd)/certificate.pem.crt"
+          echo "AWS_IOT_CORE_CERT=$(pwd)/certificate.pem.crt" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_PRIVATE_KEY=$(pwd)/private.pem.key" >> $GITHUB_ENV
           rm -rf public.pem.key
           rm -rf certificate.json
 
@@ -161,6 +163,8 @@ jobs:
       - name: Deactivate keys
         if: always()
         run: |
+          rm -rf certificate.pem.crt
+          rm -rf private.pem.key
           aws iot update-certificate --certificate-id "$CERT_ID" --new-status "INACTIVE"
 
       - name: Delete keys
