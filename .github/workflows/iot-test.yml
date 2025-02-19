@@ -21,6 +21,7 @@ jobs:
     env:
       THING_NAME: my-gh-test-thing
       ROLE_NAME: my-gh-test-role
+      POLICY_NAME: my-gh-test-policy
 
     steps:
       - name: Checkout repository
@@ -60,19 +61,47 @@ jobs:
           }
           EOF
           aws iam create-role --role-name "$ROLE_NAME" --assume-role-policy-document 'file://iot-assume-policy.json' > iam-role.json
-          echo "ROLE_CREATED=yes" >> $GITHUB_ENV
+          rm -rf iot-assume-policy.json
+
+      - name: Create role permissions policy
+        id: create-iam-policy
+        run: |
+          cat > iam-assume-policy.json <<EOF
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "kinesisvideo:DescribeStream",
+                  "kinesisvideo:PutMedia",
+                  "kinesisvideo:TagStream",
+                  "kinesisvideo:GetDataEndpoint"
+                ],
+                "Resource": "arn:aws:kinesisvideo:*:*:stream/${credentials-iot:ThingName}/*"
+              }
+            ]
+          }
+          EOF
+          aws iam put-role-policy --role-name $ROLE_NAME --policy-name $POLICY_NAME --policy-document 'file://iam-permission-document.json'
+          rm -rf iam-permission-document.json
 
       - name: Test
         run: |
           echo "Hi! Iot thing name: $THING_NAME"
 
+      - name: Cleanup role permissions policy
+        if: ${{ steps.create-iam-policy.outcome == 'success' }}
+        run: |
+          aws iam delete-role-policy --role-name $ROLE_NAME --policy-name $POLICY_NAME
+
       - name: Cleanup IAM role
-        if: ${{ env.ROLE_CREATED != '' }}
+        if: ${{ steps.create-iam-role.outcome == 'success' }}
         run: |
           aws iam delete-role --role-name "$ROLE_NAME"
 
       - name: Cleanup IoT thing
-        if: ${{ env.AWS_IOT_CORE_THING_NAME != '' }}
+        if: ${{ steps.create-iot-thing.outcome == 'success' }}
         run: |
           aws iot delete-thing --thing-name "$THING_NAME"
 
