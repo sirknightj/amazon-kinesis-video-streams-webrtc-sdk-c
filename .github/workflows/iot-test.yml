@@ -27,7 +27,6 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-west-2
-          role-duration-seconds: 10800
 
 #      - name: Install Dependencies
 #        run: |
