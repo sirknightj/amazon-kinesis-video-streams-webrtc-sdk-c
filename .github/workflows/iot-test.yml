@@ -19,25 +19,35 @@ jobs:
       contents: read
 
     env:
+      AWS_DEFAULT_REGION: us-west-2
       THING_NAME: my-gh-test-thing
       ROLE_NAME: my-gh-test-role
       POLICY_NAME: my-gh-test-policy
       ROLE_ALIAS: my-gh-role-alias
       IOT_POLICY_NAME: my-gh-iot-policy
+      AWS_KVS_LOG_LEVEL: 2
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          brew install coreutils
+
+      - name: Build Repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DUSE_MBEDTLS=ON -DUSE_OPENSSL=OFF -DIOT_CORE_ENABLE_CREDENTIALS=ON
+          make -j$(sysctl -n hw.ncpu)
+        shell: bash
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-west-2
-
-#      - name: Install Dependencies
-#        run: |
-#          brew install coreutils
 
       - name: Create IoT thing
         run: |
@@ -96,6 +106,7 @@ jobs:
             --credential-duration-seconds 3600 > iot-role-alias.json
           
           echo "IOT_ROLE_ALIAS_ARN=$(jq --raw-output '.roleAliasArn' iot-role-alias.json)" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_ROLE_ALIAS=$ROLE_ALIAS"
           rm -rf iot-role-alias.json
 
       - name: Create IoT policy
@@ -146,9 +157,18 @@ jobs:
           echo "::add-mask::$ENDPOINT"
           echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
 
-      - name: Test
+      - name: Get CA Certificate
         run: |
-          echo "Hi! Iot thing name: $THING_NAME"
+          curl --silent 'https://www.amazontrust.com/repository/AmazonRootCA1.pem' --output AmazonRootCA1.pem
+          echo "AWS_KVS_CACERT_PATH=$(pwd)/AmazonRootCA1.pem" >> $GITHUB_ENV
+
+      - name: Check samples
+        working-directory: ./build
+        run: |
+          gtimeout --signal=SIGINT --kill-after=30s 15s ./samples/kvsWebRTCClientMaster "$THING_NAME"
+
+          echo "Exited with: $?";
+        shell: bash
 
       - name: Detach thing principal
         if: always()
@@ -163,13 +183,13 @@ jobs:
       - name: Deactivate keys
         if: always()
         run: |
-          rm -rf certificate.pem.crt
-          rm -rf private.pem.key
           aws iot update-certificate --certificate-id "$CERT_ID" --new-status "INACTIVE"
 
       - name: Delete keys
         if: always()
         run: |
+          rm -rf certificate.pem.crt
+          rm -rf private.pem.key
           aws iot delete-certificate --certificate-id "$CERT_ID"
 
       - name: Delete IoT policy
@@ -197,34 +217,11 @@ jobs:
         run: |
           aws iot delete-thing --thing-name "$THING_NAME"
 
-      - name: check dir
-        run:
-          ls
-
-#      - name: Build
-#        run: |
-#          mkdir build
-#          cd build
-#          cmake .. -DUSE_MBEDTLS=ON -DUSE_OPENSSL=OFF -DIOT_CORE_ENABLE_CREDENTIALS=ON
-#          make -j$(sysctl -n hw.ncpu)
-#        shell: bash
-#
-#      - name: Check samples
-#        working-directory: ./build
-#        env:
-#          AWS_IOT_CORE_CREDENTIAL_ENDPOINT: ${{ secrets.AWS_IOT_CORE_CREDENTIAL_ENDPOINT }}
-#          AWS_IOT_CORE_ROLE_ALIAS: ${{ secrets.AWS_IOT_CORE_ROLE_ALIAS }}
-#          AWS_IOT_CORE_THING_NAME: ${{ secrets.AWS_IOT_CORE_THING_NAME }}
-#          AWS_IOT_CORE_PRIVATE_KEY_CONTENTS: ${{ secrets.AWS_IOT_CORE_PRIVATE_KEY }}
-#          AWS_IOT_CORE_CERT_CONTENTS: ${{ secrets.AWS_IOT_CORE_CERT }}
-#          AWS_IOT_CORE_PRIVATE_KEY: ./private.pem.key
-#          AWS_IOT_CORE_CERT: ./certificate.pem.crt
-#
-#        run: |
-#          echo "$AWS_IOT_CORE_PRIVATE_KEY_CONTENTS" > "$AWS_IOT_CORE_PRIVATE_KEY"
-#          echo "$AWS_IOT_CORE_CERT_CONTENTS" > "$AWS_IOT_CORE_CERT"
-#
-#          gtimeout --signal=SIGINT --kill-after=30s 15s ./samples/kvsWebRTCClientMaster "$CHANNEL_NAME"
-#
-#          echo "Exited with: $?";
-#        shell: bash
+      - name: Delete envs
+        if: always()
+        run: |
+          echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_PRIVATE_KEY=" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_ROLE_ALIAS=" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_THING_NAME=" >> $GITHUB_ENV
+          echo "AWS_IOT_CORE_CERT=" >> $GITHUB_ENV
