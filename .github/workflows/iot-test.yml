@@ -40,13 +40,11 @@ jobs:
 #          brew install coreutils
 
       - name: Create IoT thing
-        id: create-iot-thing
         run: |
           aws iot create-thing --thing-name "$THING_NAME" > iot-thing.json
           echo "AWS_IOT_CORE_THING_NAME=$THING_NAME" >> $GITHUB_ENV
 
       - name: Create IAM role
-        id: create-iam-role
         run: |
           cat > iot-assume-policy.json <<EOF
           {
@@ -66,7 +64,6 @@ jobs:
           rm -rf iot-assume-policy.json
 
       - name: Create role permissions policy
-        id: create-iam-policy
         run: |
           cat > iam-assume-policy.json <<EOF
           {
@@ -111,33 +108,76 @@ jobs:
             ]
           }
           EOF
-          aws iot create-policy --policy-name $IOT_POLICY_NAME --policy-document 'file://iot-policy-document.json'
+          aws iot create-policy --policy-name $IOT_POLICY_NAME --policy-document 'file://iot-policy-document.json' >/dev/null
+
+      - name: Create keys
+        run: |
+          aws iot create-keys-and-certificate --set-as-active \
+            --certificate-pem-outfile certificate.pem.crt \
+            --public-key-outfile public.pem.key \
+            --private-key-outfile private.pem.key > certificate.json
+          
+          echo "CERT_ID=$(jq -r '.certificateId' certificate.json)" >> $GITHUB_ENV
+          echo "CERT_ARN=$(jq -r '.certificateArn' certificate.json)" >> $GITHUB_ENV
+
+      - name: Attach policy
+        run: |
+          aws iot attach-policy --policy-name "$IOT_POLICY_NAME" --target "$CERT_ARN"
+
+      - name: Attach thing principal
+        run: |
+          aws iot attach-thing-principal --thing-name "$THING_NAME" --principal "$CERT_ARN"
 
       - name: Test
         run: |
           echo "Hi! Iot thing name: $THING_NAME"
 
-      - name: Cleanup IoT policy
+      - name: Detach thing principal
         if: always()
         run: |
-          aws iot delete-policy --policy-name $IOT_POLICY_NAME
+          aws iot detach-thing-principal --thing-name "$THING_NAME" --principal "$CERT_ARN"
 
-      - name: Cleanup role alias
+      - name: Get endpoint
+        run: |
+          echo "AWS_IOT_CORE_CREDENTIAL_ENDPOINT=$(aws iot describe-endpoint \
+            --endpoint-type iot:CredentialProvider --output text)" >> $GITHUB_ENV
+
+      - name: Detach policy
+        if: always()
+        run: |
+          aws iot detach-policy --policy-name "$IOT_POLICY_NAME" --target "$CERT_ARN"
+
+      - name: Deactivate keys
+        if: always()
+        run: |
+          aws iot update-certificate --certificate-id "$CERT_ID" --new-status "INACTIVE"
+
+      - name: Delete keys
+        if: always()
+        run: |
+          aws iot delete-certificate --certificate-id "$CERT_ID"
+
+      - name: Delete IoT policy
+        if: always()
+        run: |
+          aws iot delete-policy --policy-name "$IOT_POLICY_NAME"
+
+      - name: Delete role alias
         if: always()
         run: |
           aws iot delete-role-alias --role-alias "$ROLE_ALIAS"
 
-      - name: Cleanup role permissions policy
+      - name: Delete role permissions policy
         if: always()
         run: |
-          aws iam delete-role-policy --role-name $ROLE_NAME --policy-name $POLICY_NAME
+          aws iam delete-role-policy --role-name "$ROLE_NAME" --policy-name "$POLICY_NAME"
 
-      - name: Cleanup IAM role
+      - name: Delete IAM role
         if: always()
         run: |
           aws iam delete-role --role-name "$ROLE_NAME"
 
-      - name: Cleanup IoT thing
+      - name: Delete IoT thing
         if: always()
         run: |
           aws iot delete-thing --thing-name "$THING_NAME"
