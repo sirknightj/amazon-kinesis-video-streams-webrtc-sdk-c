@@ -91,7 +91,7 @@ jobs:
                   "kinesisvideo:ConnectAsMaster",
                   "kinesisvideo:GetIceServerConfig"
                 ],
-                "Resource": "arn:aws:kinesisvideo:*:*:channel/${credentials-iot:ThingName}/*"
+                "Resource": "*"
               }
             ]
           }
