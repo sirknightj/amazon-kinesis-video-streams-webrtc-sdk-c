@@ -91,17 +91,17 @@ jobs:
           echo "Hi! Iot thing name: $THING_NAME"
 
       - name: Cleanup role permissions policy
-        if: ${{ steps.create-iam-policy.outcome == 'success' }}
+        if: always()
         run: |
           aws iam delete-role-policy --role-name $ROLE_NAME --policy-name $POLICY_NAME
 
       - name: Cleanup IAM role
-        if: ${{ steps.create-iam-role.outcome == 'success' }}
+        if: always()
         run: |
           aws iam delete-role --role-name "$ROLE_NAME"
 
       - name: Cleanup IoT thing
-        if: ${{ steps.create-iot-thing.outcome == 'success' }}
+        if: always()
         run: |
           aws iot delete-thing --thing-name "$THING_NAME"
 
