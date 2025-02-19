@@ -85,10 +85,11 @@ jobs:
               {
                 "Effect": "Allow",
                 "Action": [
-                  "kinesisvideo:DescribeStream",
-                  "kinesisvideo:PutMedia",
-                  "kinesisvideo:TagStream",
-                  "kinesisvideo:GetDataEndpoint"
+                  "kinesisvideo:CreateSignalingChannel",
+                  "kinesisvideo:DescribeSignalingChannel",
+                  "kinesisvideo:GetSignalingChannelEndpoint",
+                  "kinesisvideo:ConnectAsMaster",
+                  "kinesisvideo:GetIceServerConfig"
                 ],
                 "Resource": "arn:aws:kinesisvideo:*:*:stream/${credentials-iot:ThingName}/*"
               }
@@ -169,6 +170,11 @@ jobs:
 
           echo "Exited with: $?";
         shell: bash
+
+      - name: Delete Channel
+        if: always()
+        run: |
+          aws kinesis-video delete-signaling-channel --channel-arn $(aws kinesisvideo describe-signaling-channel --channel-name "demo-channel" --query "ChannelInfo.ChannelARN" --output text)
 
       - name: Detach thing principal
         if: always()
