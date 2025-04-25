@@ -9,12 +9,8 @@ on:
       - develop
       - main
 
-env:
-  ENABLED: 'ON'
-
 jobs:
   linux-cross-compilation:
-    if: env.ENABLED == 'ON'
     strategy:
       matrix:
         compiler:

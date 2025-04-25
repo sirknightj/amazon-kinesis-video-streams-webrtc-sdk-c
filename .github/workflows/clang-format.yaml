@@ -10,12 +10,8 @@ on:
       - develop
       - main
 
-env:
-  ENABLED: "ON"
-
 jobs:
   clang-format-check:
-    if: env.ENABLED == 'ON'
     runs-on: macos-13
     steps:
       - name: Clone repository

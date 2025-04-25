@@ -10,12 +10,8 @@ on:
       - develop
       - main
 
-env:
-  ENABLED: "ON"
-
 jobs:
   sample-check:
-    if: env.ENABLED == 'ON'
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
@@ -45,7 +41,6 @@ jobs:
           ./scripts/check-sample.sh
 
   sample-check-no-data-channel:
-    if: env.ENABLED == 'ON'
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
@@ -75,7 +70,6 @@ jobs:
           ./scripts/check-sample.sh
 
   valgrind-check:
-    if: env.ENABLED == 'ON'
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 7

@@ -10,12 +10,8 @@ on:
       - develop
       - main
 
-env:
-  ENABLED: 'ON'
-
 jobs:
   address-sanitizer:
-    if: env.ENABLED == 'ON'
     runs-on: ubuntu-22.04
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
@@ -56,7 +52,6 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
-    if: env.ENABLED == 'ON'
     runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
@@ -117,7 +112,6 @@ jobs:
   #         ulimit -c unlimited -S
   #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   thread-sanitizer:
-    if: env.ENABLED == 'ON'
     runs-on: ubuntu-22.04
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
