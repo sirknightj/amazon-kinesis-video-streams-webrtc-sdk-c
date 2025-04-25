@@ -156,7 +156,7 @@ jobs:
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
 
-  mbedtls-ubuntu-gcc-4.4:
+  mbedtls-ubuntu-gcc-4-4:
     runs-on: ubuntu-22.04
     env:
       AWS_KVS_LOG_LEVEL: 2
