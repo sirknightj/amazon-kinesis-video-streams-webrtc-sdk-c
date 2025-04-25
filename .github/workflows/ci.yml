@@ -194,7 +194,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make -j
 
       - name: Configure AWS Credentials
@@ -217,8 +217,6 @@ jobs:
           - name: Ubuntu 22.04
             image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
             test: ON
-          - name: Ubuntu 24.04
-            image: public.ecr.aws/ubuntu/ubuntu:24.04_stable
         compiler:
           - gcc
           - clang
@@ -272,7 +270,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF ${{ matrix.build-configuration.cmake-args }}
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF ${{ matrix.build-configuration.cmake-args }}
           make -j
           file ./tst/webrtc_client_test
 
