@@ -184,7 +184,6 @@ jobs:
           add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
           apt-get -q update
           apt-get -y install gcc-4.4
-          sudo apt-get -y install libcurl4-openssl-dev
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -273,7 +272,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE ${{ matrix.build-configuration.cmake-args }}
+          cmake .. -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF ${{ matrix.build-configuration.cmake-args }}
           make -j
           file ./tst/webrtc_client_test
 
