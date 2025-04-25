@@ -215,7 +215,7 @@ jobs:
             cmake-args: "-DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
           - name: lws
             cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
-        fail-fast: false
+      fail-fast: false
 
     runs-on: ubuntu-latest
     container:
