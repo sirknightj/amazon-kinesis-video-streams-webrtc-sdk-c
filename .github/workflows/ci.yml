@@ -96,7 +96,7 @@ jobs:
         shell: bash
 
   address-sanitizer:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
       LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
@@ -132,7 +132,7 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       CC: clang
@@ -188,7 +188,7 @@ jobs:
   #         ulimit -c unlimited -S
   #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   thread-sanitizer:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
       CC: clang
@@ -222,7 +222,7 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   linux-gcc-4_4:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
@@ -260,7 +260,7 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
       image: alpine:3.15.4
     env:
@@ -284,7 +284,7 @@ jobs:
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
   mbedtls-ubuntu-gcc:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -355,7 +355,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
   mbedtls-ubuntu-gcc-4_4-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
@@ -387,7 +387,7 @@ jobs:
           make
 
   mbedtls-ubuntu-clang:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       CC: clang
       CXX: clang++
@@ -472,7 +472,7 @@ jobs:
         run: |
           ./scripts/check-sample.sh
   ubuntu-os-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -502,7 +502,7 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   ubuntu-os-build-stats-calc-control:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
