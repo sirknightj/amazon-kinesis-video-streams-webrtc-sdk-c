@@ -290,39 +290,6 @@ jobs:
         run: |
           ./tst/webrtc_client_test
 
-  ubuntu-os-build-stats-calc-control:
-    runs-on: ubuntu-22.04
-
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install libcurl4-openssl-dev
-
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.x'
-
-      - name: Build repository
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DBUILD_TEST=ON -DENABLE_STATS_CALCULATION_CONTROL=ON
-          make -j
-
-      - name: Run tests
-        working-directory: ./build
-        run: |
-          ./tst/webrtc_client_test --gtest_filter="*MetricsApiTest*"
-
   windows-msvc-openssl:
     runs-on: windows-2022
     env:
@@ -408,6 +375,41 @@ jobs:
   #         cd D:\a\webrtc
   #         git config --system core.longpaths true
   #         .github\build_windows_mbedtls.bat
+
+  # ----------------------------------------------------
+
+  stats-calc-control-check:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DENABLE_STATS_CALCULATION_CONTROL=ON
+          make -j
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test --gtest_filter="*MetricsApiTest*"
 
   stack-size-check:
     runs-on: ubuntu-latest
