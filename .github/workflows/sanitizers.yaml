@@ -12,6 +12,7 @@ on:
 
 env:
   AWS_KVS_LOG_LEVEL: 7
+  DEBIAN_FRONTEND: noninteractive
 
 jobs:
   address-sanitizer:
