@@ -10,6 +10,9 @@ on:
       - develop
       - main
 
+env:
+  AWS_KVS_LOG_LEVEL: 7
+
 jobs:
   address-sanitizer:
     runs-on: ubuntu-22.04
@@ -112,39 +115,44 @@ jobs:
   #         ulimit -c unlimited -S
   #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   thread-sanitizer:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
       CC: clang
       CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
+
     permissions:
       id-token: write
       contents: read
+
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get -y install clang cmake build-essential git pkg-config
+          apt-get -y install libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DTHREAD_SANITIZER=ON
+          make -j
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.x'
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
-          make
-          ulimit -c unlimited -S
+
       - name: Run tests
         run: |
           cd build
