@@ -133,7 +133,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get -y install clang cmake build-essential git pkg-config
+          apt-get -y install clang cmake build-essential git pkg-config zlib
           apt-get -y install libcurl4-openssl-dev
 
       - name: Setup cmake
