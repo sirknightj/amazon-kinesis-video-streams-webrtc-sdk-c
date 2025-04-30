@@ -33,7 +33,6 @@ jobs:
       - name: Adjust dependencies
         run: |
           brew update
-          brew uninstall mbedtls
           brew install mbedtls@2
           brew uninstall openssl
           brew install openssl@1.1
