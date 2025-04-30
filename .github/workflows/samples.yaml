@@ -34,14 +34,12 @@ jobs:
         run: |
           brew update
           brew install mbedtls@2
-          brew uninstall openssl
-          brew install openssl@1.1
 
       - name: Build repository
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_DEPENDENCIES=OFF
+          cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make -j
 
       - name: Configure AWS Credentials
