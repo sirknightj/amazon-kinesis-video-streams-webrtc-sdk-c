@@ -30,10 +30,17 @@ jobs:
         with:
           cmake-version: '3.x'
 
+      - name: Adjust dependencies
+        run: |
+          brew update
+          brew uninstall mbedtls
+          brew install mbedtls@2
+
       - name: Build repository
         run: |
-          mkdir build && cd build
-          cmake ..
+          mkdir build
+          cd build
+          cmake .. -DBUILD_DEPENDENCIES=OFF
           make -j
 
       - name: Configure AWS Credentials
