@@ -74,12 +74,14 @@ jobs:
 #            runner: macos-13
           - name: Mac Apple Silicon
             runner: macos-15
-        compiler: [ gcc, clang ]
+        compiler:
+          - gcc
+#          - clang
         config:
-#          - name: Shared OpenSSL
-#            cmake_flags: "-DBUILD_TEST=ON"
-#          - name: Static OpenSSL
-#            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON"
+          - name: Shared OpenSSL
+            cmake_flags: "-DBUILD_TEST=ON"
+          - name: Static OpenSSL
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON"
           - name: Shared MbedTLS
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: Static MbedTLS
