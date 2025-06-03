@@ -73,7 +73,7 @@ jobs:
 #          - name: Mac Intel
 #            runner: macos-13
           - name: Mac Apple Silicon
-            runner: macos-15
+            runner: macos-14
         compiler:
           - gcc
 #          - clang
@@ -118,7 +118,6 @@ jobs:
       - name: Configure and build ${{ matrix.config.name }}
         run: |
           if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
-            brew install gcc@14
             export CC="gcc-14"
             export CXX="g++-14"
           else
