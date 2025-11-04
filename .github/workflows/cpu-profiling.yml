@@ -40,7 +40,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DLINK_PROFILER=ON
+        cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DLINK_PROFILER=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
     - name: Build
       working-directory: build
@@ -55,6 +55,8 @@ jobs:
 
     - name: Run profiling
       working-directory: build
+      env:
+        CPUPROFILE_FREQUENCY: 1000
       run: |
         cd samples
         CPUPROFILE=master_profile.prof ./kvsWebrtcClientMaster profiling-test-channel &
