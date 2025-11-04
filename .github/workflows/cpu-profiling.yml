@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update
-        apt-get install -y build-essential pkg-config linux-tools-generic google-perftools libgoogle-perftools-dev git
+        apt-get install -y build-essential pkg-config google-perftools libgoogle-perftools-dev git
 
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
@@ -57,16 +57,16 @@ jobs:
       working-directory: build
       run: |
         cd samples
-        perf record -g -o master.data ./kvsWebrtcClientMaster profiling-test-channel &
+        CPUPROFILE=master_profile.prof ./kvsWebrtcClientMaster profiling-test-channel &
         MASTER_PID=$!
         sleep 10
-        perf record -g -o viewer.data ./kvsWebrtcClientViewer profiling-test-channel &
+        CPUPROFILE=viewer_profile.prof ./kvsWebrtcClientViewer profiling-test-channel &
         VIEWER_PID=$!
         sleep 30
-        kill -INT $MASTER_PID $VIEWER_PID
-        wait $MASTER_PID $VIEWER_PID
-        perf report -i master.data --stdio > master_cpu_report.txt
-        perf report -i viewer.data --stdio > viewer_cpu_report.txt
+        kill -INT $MASTER_PID $VIEWER_PID || true
+        wait $MASTER_PID $VIEWER_PID || true
+        google-pprof --text ./kvsWebrtcClientMaster master_profile.prof > master_cpu_report.txt
+        google-pprof --text ./kvsWebrtcClientViewer viewer_profile.prof > viewer_cpu_report.txt
     
     - name: Upload report
       uses: actions/upload-artifact@v4
