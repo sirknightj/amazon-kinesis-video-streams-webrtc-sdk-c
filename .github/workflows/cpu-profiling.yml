@@ -1,0 +1,74 @@
+name: CPU Profiling Report
+
+on:
+  pull-request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    container: ubuntu:latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get install -y build-essential linux-tools-generic google-perftools libgoogle-perftools-dev git
+
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.x'
+    
+    - name: Configure with profiler
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DLINK_PROFILER=ON
+    
+    - name: Build
+      working-directory: build
+      run: |
+        cd build
+        make -j$(nproc)
+    
+    - name: Run profiling
+      run: |
+        cd build/samples
+        perf record -g -o master.data ./kvsWebrtcClientMaster profiling-test-channel &
+        MASTER_PID=$!
+        sleep 5
+        perf record -g -o viewer.data ./kvsWebrtcClientViewer profiling-test-channel &
+        VIEWER_PID=$!
+        sleep 30
+        kill -INT $MASTER_PID $VIEWER_PID
+        wait $MASTER_PID $VIEWER_PID
+        perf report -i master.data --stdio > master_cpu_report.txt
+        perf report -i viewer.data --stdio > viewer_cpu_report.txt
+    
+    - name: Upload report
+      uses: actions/upload-artifact@v4
+      with:
+        name: cpu-profiling-report
+        path: |
+          build/samples/master_cpu_report.txt
+          build/samples/viewer_cpu_report.txt
