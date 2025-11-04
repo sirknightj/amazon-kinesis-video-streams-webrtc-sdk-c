@@ -13,50 +13,53 @@ on:
 jobs:
   profile:
     runs-on: ubuntu-latest
-    container: ubuntu:latest
-    
+    container: public.ecr.aws/ubuntu/ubuntu:24.04_stable
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
     - name: Clone repository
       uses: actions/checkout@v4
-    
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        aws-region: ${{ secrets.AWS_REGION }}
-    
+
     - name: Install dependencies
       run: |
         apt-get update
-        apt-get install -y build-essential linux-tools-generic google-perftools libgoogle-perftools-dev git
+        apt-get install -y build-essential pkg-config linux-tools-generic google-perftools libgoogle-perftools-dev git
 
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
       with:
         cmake-version: '3.x'
-    
+
     - name: Configure with profiler
       run: |
         mkdir build
         cd build
         cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DLINK_PROFILER=ON
-    
+
     - name: Build
       working-directory: build
       run: |
         cd build
         make -j$(nproc)
-    
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
     - name: Run profiling
+      working-directory: build
       run: |
-        cd build/samples
+        cd samples
         perf record -g -o master.data ./kvsWebrtcClientMaster profiling-test-channel &
         MASTER_PID=$!
-        sleep 5
+        sleep 10
         perf record -g -o viewer.data ./kvsWebrtcClientViewer profiling-test-channel &
         VIEWER_PID=$!
         sleep 30
