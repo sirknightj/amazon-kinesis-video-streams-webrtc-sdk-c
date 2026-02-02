@@ -120,3 +120,29 @@ jobs:
             exit 1
           fi
 
+      - name: Setup Python for media validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download and verify media
+        run: |
+          # Clone validation tools
+          git clone --depth 1 --branch develop https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-java.git /tmp/kvs-tools
+          cd /tmp/kvs-tools/scripts/python/getmediavalidation
+          
+          # Install dependencies
+          python -m pip install --upgrade pip
+          pip install -e .
+
+          # Fetch fragment info and check if table is non-empty
+          OUTPUT=$(python ./bin/fetch_fragment_info.py --stream-name "$STREAM_NAME" --region "${{ secrets.AWS_REGION }}" --last 5m)
+          echo "$OUTPUT"
+          
+          # Check if table contains data rows (look for fragment numbers)
+          if echo "$OUTPUT" | grep -E "^\| [0-9]+" > /dev/null; then
+            echo "✓ Media fragments found in stream"
+          else
+            echo "✗ No media fragments found in stream"
+            exit 1
+          fi
