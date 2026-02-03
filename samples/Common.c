@@ -316,6 +316,8 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
+    MEMSET(&message, 0x00, SIZEOF(SignalingMessage));
+
     if (candidateJson == NULL) {
         DLOGD("ice candidate gathering finished");
         ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
