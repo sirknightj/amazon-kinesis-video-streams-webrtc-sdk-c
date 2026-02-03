@@ -44,6 +44,7 @@ extern "C" {
 #endif
 #include <mbedtls/sha256.h>
 #include <mbedtls/md5.h>
+#include <psa/crypto.h>
 #endif
 
 #include <srtp2/srtp.h>
