@@ -1889,6 +1889,11 @@ STATUS deinitKvsWebRtc(VOID)
 
     srtp_shutdown();
 
+#if KVS_USE_MBEDTLS
+    // Clean up PSA Crypto global state
+    mbedtls_psa_crypto_free();
+#endif
+
 #ifdef ENABLE_KVS_THREADPOOL
     cleanupWebRtcClientInstance();
     destroyThreadPoolContext();

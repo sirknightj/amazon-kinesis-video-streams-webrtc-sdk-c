@@ -315,6 +315,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
     SignalingMessage message;
 
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+    MEMSET(&message, 0x00, SIZEOF(SignalingMessage));
 
     if (candidateJson == NULL) {
         DLOGD("ice candidate gathering finished");
