@@ -18,6 +18,7 @@ jobs:
       AWS_KVS_LOG_LEVEL: 5
       MIN_COUNT: 3
       LOG_FILE_LIMIT: 50
+      ITERATIONS: 2
 
     permissions:
       id-token: write
@@ -66,15 +67,15 @@ jobs:
           mkdir master-logs
           mkdir viewer-logs
 
-          for i in {1..50}; do
+          for i in $(seq 1 $ITERATIONS); do
             echo "Iteration: $i"
-            export LOG_FILE_DIR="./master-logs"
+            export LOG_FILE_DIR="./master-logs/"
             ./samples/kvsWebrtcClientMaster "$CHANNEL_NAME" &
             export MASTER_PID=$!
             echo "Master PID: $MASTER_PID"
             sleep 15
 
-            export LOG_FILE_DIR="./viewer-logs"
+            export LOG_FILE_DIR="./viewer-logs/"
             ./samples/kvsWebrtcClientViewer "$CHANNEL_NAME" &
             export VIEWER_PID=$!
             echo "Viewer PID: $VIEWER_PID"
