@@ -17,6 +17,7 @@ jobs:
     env:
       AWS_KVS_LOG_LEVEL: 5
       MIN_COUNT: 3
+      LOG_FILE_LIMIT: 50
 
     permissions:
       id-token: write
@@ -60,25 +61,26 @@ jobs:
           echo "CHANNEL_NAME=$CHANNEL_NAME" >> $GITHUB_ENV
 
       - name: Run 50 Iterations
+        working-directory: build
         run: |
-          cd build
+          mkdir master-logs
+          mkdir viewer-logs
+
           for i in {1..50}; do
             echo "Iteration: $i"
-            (
-              ./samples/kvsWebRTCClientMaster "$CHANNEL_NAME" 2>&1 | grep "PROFILE" >> master_profile_logs.txt
-            )&
+            export LOG_FILE_DIR="./master-logs"
+            ./samples/kvsWebRTCClientMaster "$CHANNEL_NAME" &
             export MASTER_PID=$!
             echo "Master PID: $PID"
             sleep 15
 
-            (
-              ./samples/kvsWebRTCClientViewer "$CHANNEL_NAME" 2>&1 | grep "PROFILE" >> viewer_profile_logs.txt
-            )&
+            export LOG_FILE_DIR="./viewer-logs"
+            ./samples/kvsWebRTCClientViewer "$CHANNEL_NAME" &
             export VIEWER_PID=$!
             echo "Viewer PID: $PID"
             sleep 15
 
-            kill -9 "$MASTER_PID" "$VIEWER_PID" || true
+            kill -9 "$MASTER_PID" "$VIEWER_PID"
             sleep 3
           done
         shell: bash
