@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import glob
 import os
 import re
 import statistics
@@ -57,7 +58,14 @@ if __name__ == "__main__":
 
     stats = defaultdict(list)
     order = {}
-    for log_file in sys.argv[1:]:
+    log_files = []
+    for pattern in sys.argv[1:]:
+        matches = glob.glob(pattern)
+        if not matches:
+            matches = [pattern]
+        log_files.extend(matches)
+    
+    for log_file in log_files:
         file_stats, file_order = parse_profile_logs(log_file)
         for metric, times in file_stats.items():
             if metric not in order:
