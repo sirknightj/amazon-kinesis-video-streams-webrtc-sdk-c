@@ -35,14 +35,15 @@ def print_stats(stats, order):
         if len(times) < min_count:
             continue
         avg = sum(times) / len(times)
+        stddev = statistics.stdev(times) if len(times) > 1 else 0
         p50 = statistics.quantiles(times, n=100)[49] if len(times) > 1 else times[0]
         p90 = statistics.quantiles(times, n=100)[89] if len(times) > 1 else times[0]
-        rows.append([metric, avg, min(times), p50, p90, max(times), len(times)])
+        rows.append([metric, avg, stddev, min(times), p50, p90, max(times), len(times)])
 
     print(
         tabulate(
             rows,
-            headers=["Metric", "Avg", "Min", "P50", "P90", "Max", "Count"],
+            headers=["Metric", "Avg", "StdDev", "Min", "P50", "P90", "Max", "Count"],
             tablefmt="grid",
             numalign="left",
             stralign="left",
