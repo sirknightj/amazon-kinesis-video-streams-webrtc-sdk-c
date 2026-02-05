@@ -71,16 +71,23 @@ jobs:
             export LOG_FILE_DIR="./master-logs"
             ./samples/kvsWebrtcClientMaster "$CHANNEL_NAME" &
             export MASTER_PID=$!
-            echo "Master PID: $PID"
+            echo "Master PID: $MASTER_PID"
             sleep 15
 
             export LOG_FILE_DIR="./viewer-logs"
             ./samples/kvsWebrtcClientViewer "$CHANNEL_NAME" &
             export VIEWER_PID=$!
-            echo "Viewer PID: $PID"
+            echo "Viewer PID: $VIEWER_PID"
             sleep 15
 
-            kill -9 "$MASTER_PID" "$VIEWER_PID"
+            # Interrupt to give time for shutdown numbers
+            kill -2 "$VIEWER_PID"
+            sleep 5
+            kill -2 "$MASTER_PID"
+            sleep 5
+
+            # Cleanup in case of slowdown
+            kill -9 "$MASTER_PID" "$VIEWER_PID" || true
             sleep 3
           done
         shell: bash
