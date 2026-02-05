@@ -69,13 +69,13 @@ jobs:
           for i in {1..50}; do
             echo "Iteration: $i"
             export LOG_FILE_DIR="./master-logs"
-            ./samples/kvsWebRTCClientMaster "$CHANNEL_NAME" &
+            ./samples/kvsWebrtcClientMaster "$CHANNEL_NAME" &
             export MASTER_PID=$!
             echo "Master PID: $PID"
             sleep 15
 
             export LOG_FILE_DIR="./viewer-logs"
-            ./samples/kvsWebRTCClientViewer "$CHANNEL_NAME" &
+            ./samples/kvsWebrtcClientViewer "$CHANNEL_NAME" &
             export VIEWER_PID=$!
             echo "Viewer PID: $PID"
             sleep 15
