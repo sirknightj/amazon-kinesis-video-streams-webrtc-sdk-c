@@ -94,13 +94,16 @@ jobs:
 
       - name: Master Statistics
         run: |
+          sudo apt-get update
+          sudo apt-get install -y tree
+          tree -a
           source scripts/profile-stats/venv/bin/activate
-          python3 scripts/profile-stats/aggregate.py ./build/master-logs/kvsFileLog*
+          python3 scripts/profile-stats/aggregate.py "./build/master-logs/kvsFileLog*"
 
       - name: Viewer Statistics
         run: |
           source scripts/profile-stats/venv/bin/activate
-          python3 scripts/profile-stats/aggregate.py ./build/viewer-logs/kvsFileLog*
+          python3 scripts/profile-stats/aggregate.py "./build/viewer-logs/kvsFileLog*"
 
       - name: Cleanup
         if: always()
