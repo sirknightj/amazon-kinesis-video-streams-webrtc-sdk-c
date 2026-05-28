@@ -149,8 +149,8 @@ jobs:
 #            exit 1
 #          fi
 
-  sample-check-ubuntu-docker:
-    name: docker-${{ matrix.runner.id }} - dependencies ${{ matrix.runner.build-dependencies }}
+  static-frames-sample-check-ubuntu-docker:
+    name: docker-${{ matrix.runner.id }} - Static Frames Sample (Deps=Off)
     runs-on: ubuntu-latest
     container: ${{ matrix.runner.docker }}
     timeout-minutes: 30
@@ -162,21 +162,12 @@ jobs:
     strategy:
       matrix:
         runner:
-          - id: ubuntu-16.04
-            docker: public.ecr.aws/ubuntu/ubuntu:16.04_stable
-            build-dependencies: "ON"
-          - id: ubuntu-18.04
-            docker: public.ecr.aws/ubuntu/ubuntu:18.04_stable
-            build-dependencies: "ON"
           - id: ubuntu-20.04
             docker: public.ecr.aws/ubuntu/ubuntu:20.04_stable
-            build-dependencies: "OFF"
           - id: ubuntu-22.04
             docker: public.ecr.aws/ubuntu/ubuntu:22.04_stable
-            build-dependencies: "OFF"
           - id: ubuntu-24.04
             docker: public.ecr.aws/ubuntu/ubuntu:24.04_stable
-            build-dependencies: "OFF"
       fail-fast: false
 
     permissions:
@@ -194,13 +185,9 @@ jobs:
             pkg-config \
             libssl-dev \
             libcurl4-openssl-dev \
-            curl \
-            unzip
-          if [ "${{ matrix.runner.build-dependencies }}" = "OFF" ]; then
-            apt-get install -y \
-              libsrtp2-dev \
-              libusrsctp-dev
-          fi
+            libsrtp2-dev \
+            libusrsctp-dev
+
       - name: Clone repository
         uses: actions/checkout@v6
 
@@ -213,7 +200,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_DEPENDENCIES=${{ matrix.runner.build-dependencies }} -DBUILD_WEBSOCKETS=ON
+          cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON
           make -j
 
       - name: Sample check with force TURN
@@ -252,7 +239,7 @@ jobs:
           fi
 
   gstreamer-sample-check-ubuntu-docker:
-    name: docker-${{ matrix.runner.id }} - GStreamer testsrc - dependencies ${{ matrix.runner.build-dependencies }}
+    name: docker-${{ matrix.runner.id }} - Gst Testsrc Sample (Deps=Off)
     runs-on: ubuntu-latest
     container: ${{ matrix.runner.docker }}
     timeout-minutes: 30
@@ -264,21 +251,12 @@ jobs:
     strategy:
       matrix:
         runner:
-          - id: ubuntu-16.04
-            docker: public.ecr.aws/ubuntu/ubuntu:16.04_stable
-            build-dependencies: "ON"
-          - id: ubuntu-18.04
-            docker: public.ecr.aws/ubuntu/ubuntu:18.04_stable
-            build-dependencies: "ON"
           - id: ubuntu-20.04
             docker: public.ecr.aws/ubuntu/ubuntu:20.04_stable
-            build-dependencies: "OFF"
           - id: ubuntu-22.04
             docker: public.ecr.aws/ubuntu/ubuntu:22.04_stable
-            build-dependencies: "OFF"
           - id: ubuntu-24.04
             docker: public.ecr.aws/ubuntu/ubuntu:24.04_stable
-            build-dependencies: "OFF"
       fail-fast: false
 
     permissions:
@@ -296,19 +274,15 @@ jobs:
             pkg-config \
             libssl-dev \
             libcurl4-openssl-dev \
+            libsrtp2-dev \
+            libusrsctp-dev \
             libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad \
             gstreamer1.0-plugins-ugly \
-            gstreamer1.0-libav \
-            curl \
-            unzip
-          if [ "${{ matrix.runner.build-dependencies }}" = "OFF" ]; then
-            apt-get install -y \
-              libsrtp2-dev \
-              libusrsctp-dev
-          fi
+            gstreamer1.0-libav
+
       - name: Clone repository
         uses: actions/checkout@v6
 
@@ -321,7 +295,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_DEPENDENCIES=${{ matrix.runner.build-dependencies }} -DBUILD_WEBSOCKETS=ON
+          cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON
           make -j
 
       - name: GStreamer sample check with testsrc
