@@ -150,7 +150,7 @@ jobs:
 #          fi
 
   ubuntu-docker-sample-checks:
-    name: docker-${{ matrix.runner.id }} - Samples (Deps=Off)
+    name: docker-${{ matrix.runner.id }} - Samples (build_deps=${{ matrix.build-dependencies }})
     runs-on: ubuntu-latest
     container: ${{ matrix.runner.docker }}
     timeout-minutes: 30
@@ -167,6 +167,7 @@ jobs:
             docker: public.ecr.aws/ubuntu/ubuntu:22.04_stable
           - id: ubuntu-24.04
             docker: public.ecr.aws/ubuntu/ubuntu:24.04_stable
+        build-dependencies: ["ON", "OFF"]
       fail-fast: false
 
     permissions:
@@ -174,18 +175,13 @@ jobs:
       contents: read
 
     steps:
-      - name: Install dependencies (static frames)
+      - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y \
-            git \
-            cmake \
-            build-essential \
-            pkg-config \
-            libssl-dev \
-            libcurl4-openssl-dev \
-            libsrtp2-dev \
-            libusrsctp-dev
+          apt-get install -y git cmake build-essential pkg-config
+          if [ "${{ matrix.build-dependencies }}" = "OFF" ]; then
+            apt-get install -y libssl-dev libsrtp2-dev libusrsctp-dev
+          fi
 
       - name: Clone repository
         uses: actions/checkout@v6
@@ -193,7 +189,7 @@ jobs:
       - name: Build repository (static frames)
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON
+          cmake .. -DBUILD_DEPENDENCIES=${{ matrix.build-dependencies }} -DBUILD_WEBSOCKETS=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Configure AWS Credentials
@@ -203,12 +199,12 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Static frames sample (policy=relay)
-        run: ./scripts/run-static-sample.sh ScaryTestChannel-docker-${{ matrix.runner.id }}-relay
+        run: ./scripts/run-static-sample.sh ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay
 
       - name: Static frames sample (policy=all)
         env:
           KVS_ICE_TRANSPORT_POLICY: all
-        run: ./scripts/run-static-sample.sh ScaryTestChannel-docker-${{ matrix.runner.id }}-all
+        run: ./scripts/run-static-sample.sh ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all
 
       - name: Install GStreamer dependencies
         run: |
@@ -218,22 +214,23 @@ jobs:
             gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad \
             gstreamer1.0-plugins-ugly \
-            gstreamer1.0-libav
+            gstreamer1.0-libav \
+            gstreamer1.0-tools
 
       - name: Rebuild with GStreamer
         run: |
           rm -rf build open-source
           mkdir build && cd build
-          cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON
+          cmake .. -DBUILD_DEPENDENCIES=${{ matrix.build-dependencies }} -DBUILD_WEBSOCKETS=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: GStreamer testsrc sample (policy=relay)
-        run: ./scripts/run-gst-sample.sh ScaryTestChannel-gst-${{ matrix.runner.id }}-relay
+        run: ./scripts/run-gst-sample.sh ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay
 
       - name: GStreamer testsrc sample (policy=all)
         env:
           KVS_ICE_TRANSPORT_POLICY: all
-        run: ./scripts/run-gst-sample.sh ScaryTestChannel-gst-${{ matrix.runner.id }}-all
+        run: ./scripts/run-gst-sample.sh ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all
 
 #  valgrind-check:
 #    runs-on: ubuntu-latest

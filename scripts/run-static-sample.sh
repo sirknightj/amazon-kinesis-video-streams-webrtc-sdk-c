@@ -49,6 +49,16 @@ if [ "${KVS_ICE_TRANSPORT_POLICY:-}" = "relay" ]; then
         cat viewer.log
         exit 1
     fi
+else
+    if grep "local candidate type:.*remote candidate type:" master.log || \
+       grep "local candidate type:.*remote candidate type:" viewer.log; then
+        echo "SUCCESS: ICE candidate pair selected"
+    else
+        echo "FAILURE: No ICE candidate pair selection found in logs"
+        cat master.log
+        cat viewer.log
+        exit 1
+    fi
 fi
 
 echo "SUCCESS: Static frames sample completed on channel $CHANNEL_NAME"

@@ -47,13 +47,25 @@ if [ $MASTER_EXIT -ne 0 ] || [ $VIEWER_EXIT -ne 0 ]; then
     exit 1
 fi
 
-# Verify force TURN was used (when policy is relay)
+# Verify ICE candidate pair selection
 if [ "${KVS_ICE_TRANSPORT_POLICY:-}" = "relay" ]; then
     if grep "local candidate type: relay. remote candidate type: relay" master.log || \
        grep "local candidate type: relay. remote candidate type: relay" viewer.log; then
         echo "SUCCESS: Force TURN verified - relay candidates selected"
     else
         echo "FAILURE: Expected relay candidate pair not found in logs"
+        echo "=== Master Log ==="
+        cat master.log
+        echo "=== Viewer Log ==="
+        cat viewer.log
+        exit 1
+    fi
+else
+    if grep "local candidate type:.*remote candidate type:" master.log || \
+       grep "local candidate type:.*remote candidate type:" viewer.log; then
+        echo "SUCCESS: ICE candidate pair selected"
+    else
+        echo "FAILURE: No ICE candidate pair selection found in logs"
         echo "=== Master Log ==="
         cat master.log
         echo "=== Viewer Log ==="
