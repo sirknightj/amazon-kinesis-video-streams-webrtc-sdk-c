@@ -198,10 +198,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Static frames sample (policy=relay)
+      - name: Run static frames sample (policy=relay)
         run: ./scripts/run-static-sample.sh ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay
 
-      - name: Static frames sample (policy=all)
+      - name: Run static frames sample (policy=all)
         env:
           KVS_ICE_TRANSPORT_POLICY: all
         run: ./scripts/run-static-sample.sh ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all
@@ -217,17 +217,17 @@ jobs:
             gstreamer1.0-libav \
             gstreamer1.0-tools
 
-      - name: Rebuild with GStreamer
+      - name: Build repository (GStreamer)
         run: |
           rm -rf build open-source
           mkdir build && cd build
           cmake .. -DBUILD_DEPENDENCIES=${{ matrix.build-dependencies }} -DBUILD_WEBSOCKETS=ON -DPARALLEL_BUILD=ON
           make -j
 
-      - name: GStreamer testsrc sample (policy=relay)
+      - name: Run GStreamer testsrc sample (policy=relay)
         run: ./scripts/run-gst-sample.sh ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay
 
-      - name: GStreamer testsrc sample (policy=all)
+      - name: Run GStreamer testsrc sample (policy=all)
         env:
           KVS_ICE_TRANSPORT_POLICY: all
         run: ./scripts/run-gst-sample.sh ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all
