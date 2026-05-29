@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SAMPLES_DIR="$SCRIPT_DIR/../build/samples"
 
 cd "$SAMPLES_DIR"
+rm -f .SignalingCache_*
 
 "./kvsWebrtcClientMaster" "$CHANNEL_NAME" > master.log 2>&1 &
 MASTER_PID=$!
