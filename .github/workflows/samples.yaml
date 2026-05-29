@@ -198,13 +198,26 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Run static frames sample (policy=relay)
-        run: ./scripts/run-static-sample.sh ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay
+      - name: Install AWS CLI
+        run: |
+          apt-get install -y curl unzip
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          ./aws/install
 
       - name: Run static frames sample (policy=all)
         env:
           KVS_ICE_TRANSPORT_POLICY: all
-        run: ./scripts/run-static-sample.sh ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all
+        run: |
+          CHANNEL="ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-static-sample.sh "$CHANNEL"
+
+      - name: Run static frames sample (policy=relay)
+        run: |
+          CHANNEL="ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-static-sample.sh "$CHANNEL"
 
       - name: Install GStreamer dependencies
         run: |
@@ -224,13 +237,19 @@ jobs:
           cmake .. -DBUILD_DEPENDENCIES=${{ matrix.build-dependencies }} -DBUILD_WEBSOCKETS=ON -DPARALLEL_BUILD=ON
           make -j
 
-      - name: Run GStreamer testsrc sample (policy=relay)
-        run: ./scripts/run-gst-sample.sh ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay
-
       - name: Run GStreamer testsrc sample (policy=all)
         env:
           KVS_ICE_TRANSPORT_POLICY: all
-        run: ./scripts/run-gst-sample.sh ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all
+        run: |
+          CHANNEL="ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-gst-sample.sh "$CHANNEL"
+
+      - name: Run GStreamer testsrc sample (policy=relay)
+        run: |
+          CHANNEL="ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-gst-sample.sh "$CHANNEL"
 
 #  valgrind-check:
 #    runs-on: ubuntu-latest
