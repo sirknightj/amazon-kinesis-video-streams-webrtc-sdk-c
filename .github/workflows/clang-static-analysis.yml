@@ -1,0 +1,102 @@
+name: Clang Static Analysis
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  scan-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        crypto:
+          - name: OpenSSL
+            cmake_flags: "-DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
+          - name: MbedTLS
+            cmake_flags: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+      fail-fast: false
+
+    name: scan-build (${{ matrix.crypto.name }})
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install build-essential pkg-config wget gnupg
+
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          . /etc/lsb-release
+          echo "deb http://apt.llvm.org/${DISTRIB_CODENAME}/ llvm-toolchain-${DISTRIB_CODENAME}-20 main" | sudo tee /etc/apt/sources.list.d/llvm-20.list
+          sudo apt-get update
+          sudo apt-get -y install clang-20 clang-tools-20
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Configure and build dependencies
+        run: |
+          mkdir build && cd build
+          cmake .. ${{ matrix.crypto.cmake_flags }} \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DPARALLEL_BUILD=ON
+          echo "Dependencies built during cmake configure step."
+
+      - name: Run scan-build on project code
+        id: scan
+        working-directory: ./build
+        run: |
+          scan-build-20 \
+            --use-analyzer=/usr/bin/clang-20 \
+            --status-bugs \
+            --exclude "$(pwd)/../open-source" \
+            -o scan-build-report \
+            make -j$(nproc) 2>&1 | tee scan-build-output.txt || echo "has_findings=true" >> "$GITHUB_OUTPUT"
+
+      - name: Write step summary
+        if: steps.scan.outputs.has_findings == 'true'
+        working-directory: ./build
+        run: |
+          echo "## Clang Static Analysis Findings (${{ matrix.crypto.name }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| File | Line | Description |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|------|-------------|" >> "$GITHUB_STEP_SUMMARY"
+          grep -E "warning:.*\[.*\]$" scan-build-output.txt \
+            | sed -E 's|^.*/amazon-kinesis-video-streams-webrtc-sdk-c/||' \
+            | sed -E 's|^([^:]+):([0-9]+):[0-9]+: warning: (.+)$|| `\1` | \2 | \3 ||' \
+            >> "$GITHUB_STEP_SUMMARY" || true
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "_Full HTML report available in the workflow artifacts._" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload scan-build report
+        if: steps.scan.outputs.has_findings == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-build-report-${{ matrix.crypto.name }}
+          path: build/scan-build-report/
+          retention-days: 7
+
+      - name: Fail if findings detected
+        if: steps.scan.outputs.has_findings == 'true'
+        run: |
+          echo "::error::Clang static analysis found issues. See the job summary for details."
+          exit 1
