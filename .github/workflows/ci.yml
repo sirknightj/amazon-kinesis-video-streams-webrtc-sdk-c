@@ -499,7 +499,7 @@ jobs:
 
   cmake-validation-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
 
     permissions:
       contents: read
@@ -512,6 +512,12 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsrtp2-dev libusrsctp-dev libssl-dev libwebsockets-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev pkg-config
 
       - name: Run SDP buffer size CMake validation tests
         run: |
