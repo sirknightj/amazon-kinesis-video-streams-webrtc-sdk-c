@@ -679,6 +679,7 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
 // Shared state for end-to-end payload delivery verification
 static struct {
     volatile ATOMIC_BOOL received;
+    MUTEX lock;
     UINT32 payloadLen;
     CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1];
 } gReceivedPayload;
@@ -686,10 +687,12 @@ static struct {
 STATUS e2eMessageReceivedCallback(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
     UNUSED_PARAM(customData);
+    MUTEX_LOCK(gReceivedPayload.lock);
     gReceivedPayload.payloadLen = pReceivedSignalingMessage->signalingMessage.payloadLen;
     MEMCPY(gReceivedPayload.payload, pReceivedSignalingMessage->signalingMessage.payload,
            pReceivedSignalingMessage->signalingMessage.payloadLen);
     gReceivedPayload.payload[pReceivedSignalingMessage->signalingMessage.payloadLen] = '\0';
+    MUTEX_UNLOCK(gReceivedPayload.lock);
     ATOMIC_STORE_BOOL(&gReceivedPayload.received, TRUE);
     return STATUS_SUCCESS;
 }
@@ -807,6 +810,7 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
     message.correlationId[MAX_CORRELATION_ID_LEN] = '\0';
 
     // Reset receive state
+    MUTEX_CREATE(TRUE, &gReceivedPayload.lock);
     ATOMIC_STORE_BOOL(&gReceivedPayload.received, FALSE);
     gReceivedPayload.payloadLen = 0;
 
@@ -823,13 +827,16 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
 
     // --- Verify no truncation ---
     ASSERT_TRUE(ATOMIC_LOAD_BOOL(&gReceivedPayload.received)) << "Master did not receive the message within 5 seconds";
-    EXPECT_EQ(testPayloadSize, gReceivedPayload.payloadLen)
-        << "Payload was truncated! Expected " << testPayloadSize << " bytes, got " << gReceivedPayload.payloadLen;
+
+    MUTEX_LOCK(gReceivedPayload.lock);
+    UINT32 receivedLen = gReceivedPayload.payloadLen;
+    EXPECT_EQ(testPayloadSize, receivedLen)
+        << "Payload was truncated! Expected " << testPayloadSize << " bytes, got " << receivedLen;
 
     // Verify content integrity byte-by-byte
     BOOL contentMatch = TRUE;
     UINT32 mismatchPos = 0;
-    for (UINT32 i = 0; i < testPayloadSize && i < gReceivedPayload.payloadLen; i++) {
+    for (UINT32 i = 0; i < testPayloadSize && i < receivedLen; i++) {
         if (gReceivedPayload.payload[i] != ('A' + (i % 8))) {
             contentMatch = FALSE;
             mismatchPos = i;
@@ -839,12 +846,14 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
     EXPECT_TRUE(contentMatch) << "Payload content mismatch at byte " << mismatchPos
                               << ": expected '" << (char)('A' + (mismatchPos % 8))
                               << "', got '" << gReceivedPayload.payload[mismatchPos] << "'";
+    MUTEX_UNLOCK(gReceivedPayload.lock);
 
     printf("\n[E2E RESULT] Sent %u bytes, received %u bytes. %s\n\n",
-           testPayloadSize, gReceivedPayload.payloadLen,
-           (testPayloadSize == gReceivedPayload.payloadLen && contentMatch) ? "NO TRUNCATION" : "TRUNCATION DETECTED");
+           testPayloadSize, receivedLen,
+           (testPayloadSize == receivedLen && contentMatch) ? "NO TRUNCATION" : "TRUNCATION DETECTED");
 
     // Cleanup
+    MUTEX_FREE(&gReceivedPayload.lock);
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(masterHandle), 0);
     freeSignalingClient(&viewerHandle);
     freeSignalingClient(&masterHandle);
