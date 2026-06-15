@@ -810,7 +810,7 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
     message.correlationId[MAX_CORRELATION_ID_LEN] = '\0';
 
     // Reset receive state
-    MUTEX_CREATE(TRUE, &gReceivedPayload.lock);
+    gReceivedPayload.lock = MUTEX_CREATE(TRUE);
     ATOMIC_STORE_BOOL(&gReceivedPayload.received, FALSE);
     gReceivedPayload.payloadLen = 0;
 
@@ -853,7 +853,7 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
            (testPayloadSize == receivedLen && contentMatch) ? "NO TRUNCATION" : "TRUNCATION DETECTED");
 
     // Cleanup
-    MUTEX_FREE(&gReceivedPayload.lock);
+    MUTEX_FREE(gReceivedPayload.lock);
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(masterHandle), 0);
     freeSignalingClient(&viewerHandle);
     freeSignalingClient(&masterHandle);
