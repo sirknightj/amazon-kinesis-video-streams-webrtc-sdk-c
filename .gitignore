@@ -14,5 +14,7 @@ CMakeLists.txt.user
 *.swp
 venv/
 
+build-cmake-tests/
+
 .SignalingCache_v*
 .kiro/

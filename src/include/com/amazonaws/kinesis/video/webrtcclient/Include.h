@@ -645,9 +645,20 @@ extern "C" {
 #define MAX_MESSAGE_DESCRIPTION_LEN 1024
 
 /**
- * Maximum length of SDP member in RtcSessionDescriptionInit
+ * Maximum length of SDP member in RtcSessionDescriptionInit.
+ *
+ * Configurable at build time via -DKVS_SDP_BUFFER_SIZE=<bytes> in CMake.
+ * The signaling message buffer (MAX_SIGNALING_MESSAGE_LEN) is automatically
+ * derived from this value to account for base64 encoding overhead and JSON
+ * envelope. Customers only need to set this single value.
+ *
+ * Default: 25000 bytes. Minimum: 2048 bytes. Maximum: 40000 bytes.
  */
+#ifdef KVS_SDP_BUFFER_SIZE
+#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN KVS_SDP_BUFFER_SIZE
+#else
 #define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 25000
+#endif
 
 /**
  * Maximum length of a MediaStream's ID
@@ -680,9 +691,13 @@ extern "C" {
 #define MAX_DATA_CHANNEL_PROTOCOL_LEN 255
 
 /**
- * Maximum length of signaling message
+ * Maximum length of signaling message.
+ *
+ * Automatically derived from MAX_SESSION_DESCRIPTION_INIT_SDP_LEN to account
+ * for base64 encoding overhead (4/3 ratio) plus JSON envelope (~1024 bytes).
+ * Do not override this independently; set KVS_SDP_BUFFER_SIZE instead.
  */
-#define MAX_SIGNALING_MESSAGE_LEN 18750
+#define MAX_SIGNALING_MESSAGE_LEN ((MAX_SESSION_DESCRIPTION_INIT_SDP_LEN * 4 / 3) + 1024)
 /*!@} */
 
 /////////////////////////////////////////////////////

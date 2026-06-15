@@ -497,6 +497,28 @@ jobs:
         run: |
           ./tst/webrtc_client_test --gtest_filter="*MetricsApiTest*"
 
+  cmake-validation-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Run SDP buffer size CMake validation tests
+        run: |
+          mkdir build-cmake-tests && cd build-cmake-tests
+          cmake ../tst/cmake-validation
+          ctest -j4 --output-on-failure
+
   stack-size-check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
