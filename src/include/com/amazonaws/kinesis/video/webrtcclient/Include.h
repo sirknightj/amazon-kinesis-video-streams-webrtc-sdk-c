@@ -647,15 +647,13 @@ extern "C" {
 /**
  * Maximum length of SDP member in RtcSessionDescriptionInit.
  *
- * Configurable at build time via -DKVS_SDP_BUFFER_SIZE=<bytes> in CMake.
- * The signaling message buffer (MAX_SIGNALING_MESSAGE_LEN) is automatically
- * derived from this value to account for base64 encoding overhead and JSON
- * envelope. Customers only need to set this single value.
- *
- * Default: 25000 bytes. Minimum: 2048 bytes. Maximum: 40000 bytes.
+ * When KVS_SDP_BUFFER_SIZE is set via CMake, it specifies the maximum signaling
+ * message size (on-wire). The decoded SDP buffer is derived from it:
+ * (KVS_SDP_BUFFER_SIZE - 1024) * 3/4, accounting for base64 overhead and JSON
+ * envelope. When not set, defaults preserve backward compatibility (25000/18750).
  */
 #ifdef KVS_SDP_BUFFER_SIZE
-#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN KVS_SDP_BUFFER_SIZE
+#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN ((KVS_SDP_BUFFER_SIZE - 1024) * 3 / 4)
 #else
 #define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 25000
 #endif
@@ -693,11 +691,16 @@ extern "C" {
 /**
  * Maximum length of signaling message.
  *
- * Automatically derived from MAX_SESSION_DESCRIPTION_INIT_SDP_LEN to account
- * for base64 encoding overhead (4/3 ratio) plus JSON envelope (~1024 bytes).
- * Do not override this independently; set KVS_SDP_BUFFER_SIZE instead.
+ * When KVS_SDP_BUFFER_SIZE is set, this equals KVS_SDP_BUFFER_SIZE directly
+ * (the user-configured value represents this on-wire signaling message size).
+ * When not set, preserves the legacy default of 18750 for backward compatibility.
+ * Do not override independently; set KVS_SDP_BUFFER_SIZE instead.
  */
-#define MAX_SIGNALING_MESSAGE_LEN ((MAX_SESSION_DESCRIPTION_INIT_SDP_LEN * 4 / 3) + 1024)
+#ifdef KVS_SDP_BUFFER_SIZE
+#define MAX_SIGNALING_MESSAGE_LEN KVS_SDP_BUFFER_SIZE
+#else
+#define MAX_SIGNALING_MESSAGE_LEN 18750
+#endif
 /*!@} */
 
 /////////////////////////////////////////////////////

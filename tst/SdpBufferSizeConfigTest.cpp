@@ -8,11 +8,17 @@ namespace webrtcclient {
 
 class SdpBufferSizeConfigTest : public WebRtcClientTestBase {};
 
-// Verify that MAX_SIGNALING_MESSAGE_LEN is correctly derived from MAX_SESSION_DESCRIPTION_INIT_SDP_LEN
+// Verify the relationship between MAX_SIGNALING_MESSAGE_LEN and MAX_SESSION_DESCRIPTION_INIT_SDP_LEN
 TEST_F(SdpBufferSizeConfigTest, signalingMessageLenDerivedFromSdpLen)
 {
-    UINT32 expected = (MAX_SESSION_DESCRIPTION_INIT_SDP_LEN * 4 / 3) + 1024;
-    EXPECT_EQ(MAX_SIGNALING_MESSAGE_LEN, expected);
+#ifdef KVS_SDP_BUFFER_SIZE
+    EXPECT_EQ((UINT32) KVS_SDP_BUFFER_SIZE, MAX_SIGNALING_MESSAGE_LEN);
+    UINT32 expectedSdpLen = ((UINT32) KVS_SDP_BUFFER_SIZE - 1024) * 3 / 4;
+    EXPECT_EQ(expectedSdpLen, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+#else
+    EXPECT_EQ(18750u, MAX_SIGNALING_MESSAGE_LEN);
+    EXPECT_EQ(25000u, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+#endif
 }
 
 // Test Case: SDP at exact limit - should be accepted and parsed successfully
@@ -111,14 +117,15 @@ TEST_F(SdpBufferSizeConfigTest, parseSignalingMessage_PayloadFieldExceedsMaxLen)
     EXPECT_NE(STATUS_SUCCESS, status);
 }
 
-// Test Case: Verify the default buffer size is 25000 when KVS_SDP_BUFFER_SIZE is not defined
+// Test Case: Verify default values when KVS_SDP_BUFFER_SIZE is not defined
 TEST_F(SdpBufferSizeConfigTest, defaultBufferSizeValues)
 {
 #ifndef KVS_SDP_BUFFER_SIZE
     EXPECT_EQ(25000u, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
-    EXPECT_EQ((25000u * 4 / 3) + 1024, MAX_SIGNALING_MESSAGE_LEN);
+    EXPECT_EQ(18750u, MAX_SIGNALING_MESSAGE_LEN);
 #else
-    EXPECT_EQ((UINT32) KVS_SDP_BUFFER_SIZE, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    EXPECT_EQ((UINT32) KVS_SDP_BUFFER_SIZE, MAX_SIGNALING_MESSAGE_LEN);
+    EXPECT_EQ(((UINT32) KVS_SDP_BUFFER_SIZE - 1024) * 3 / 4, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
 #endif
 }
 

@@ -513,19 +513,19 @@ jobs:
         with:
           cmake-version: '3.x'
 
-      - name: Reject below minimum (KVS_SDP_BUFFER_SIZE=16)
+      - name: Reject below minimum (KVS_SDP_BUFFER_SIZE=5000)
         run: |
           mkdir build-below-min && cd build-below-min
           set +e
-          output=$(cmake .. -DKVS_SDP_BUFFER_SIZE=16 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1)
+          output=$(cmake .. -DKVS_SDP_BUFFER_SIZE=5000 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1)
           exit_code=$?
           set -e
           echo "$output"
           if [ $exit_code -eq 0 ]; then
-            echo "ERROR: CMake should have failed for KVS_SDP_BUFFER_SIZE=16"
+            echo "ERROR: CMake should have failed for KVS_SDP_BUFFER_SIZE=5000"
             exit 1
           fi
-          echo "$output" | grep -q "must be at least 2048 bytes"
+          echo "$output" | grep -q "must be at least 10000 bytes"
 
       - name: Reject above maximum (KVS_SDP_BUFFER_SIZE=50000)
         run: |
@@ -573,19 +573,19 @@ jobs:
         run: |
           mkdir build-valid && cd build-valid
           # Test that validation passes (check for status message, not full configure success)
-          output=$(cmake .. -DKVS_SDP_BUFFER_SIZE=2048 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1 || true)
+          output=$(cmake .. -DKVS_SDP_BUFFER_SIZE=10000 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1 || true)
           echo "$output"
-          echo "$output" | grep -q "Setting SDP buffer size to: 2048 bytes"
+          echo "$output" | grep -q "Setting signaling message buffer to: 10000 bytes"
 
           rm -rf *
           output=$(cmake .. -DKVS_SDP_BUFFER_SIZE=40000 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1 || true)
           echo "$output"
-          echo "$output" | grep -q "Setting SDP buffer size to: 40000 bytes"
+          echo "$output" | grep -q "Setting signaling message buffer to: 40000 bytes"
 
           rm -rf *
           output=$(cmake .. -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1 || true)
           echo "$output"
-          echo "$output" | grep -q "SDP buffer size using default: 25000 bytes"
+          echo "$output" | grep -q "Signaling message buffer using default"
 
   stack-size-check:
     runs-on: ubuntu-latest
