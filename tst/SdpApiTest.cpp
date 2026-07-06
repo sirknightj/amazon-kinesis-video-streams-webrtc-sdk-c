@@ -462,6 +462,51 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecvMaxTransceivers)
     freePeerConnection(&offerPc);
 }
 
+#ifdef ENABLE_DATA_CHANNEL
+// Validates that (MAX_SDP_SESSION_MEDIA_COUNT - 1) transceivers succeed with data channel enabled,
+// since data channel consumes 1 slot. Adding one more should exceed the limit.
+TEST_F(SdpApiTest, populateSingleMediaSection_MaxTransceiversWithDataChannel)
+{
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    RtcMediaStreamTrack track;
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsStream");
+    STRCPY(track.trackId, "videoTrack");
+
+    // Fill all slots except one reserved for data channel
+    for (UINT32 i = 0; i < MAX_SDP_SESSION_MEDIA_COUNT - 1; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    }
+
+    // (MAX_SDP_SESSION_MEDIA_COUNT - 1) transceivers + 1 data channel = MAX_SDP_SESSION_MEDIA_COUNT
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=video", sessionDescriptionInit.sdp);
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=application", sessionDescriptionInit.sdp);
+
+    // Adding one more transceiver should exceed the limit
+    STRCPY(track.trackId, "extraTrack");
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, createOffer(offerPc, &sessionDescriptionInit));
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+#endif
+
+
 TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
 {
     PRtcPeerConnection offerPc = NULL;
