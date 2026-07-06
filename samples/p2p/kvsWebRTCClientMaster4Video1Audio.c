@@ -44,9 +44,11 @@ STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSamp
                                                      pSampleConfiguration->videoRollingBufferDurationSec,
                                                      pSampleConfiguration->videoRollingBufferBitratebps));
 
-        CHK_STATUS(transceiverOnBandwidthEstimation(gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i],
-                                                    (UINT64) pSampleStreamingSession, sampleBandwidthEstimationHandler));
+        CHK_STATUS(transceiverOnBandwidthEstimation(gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i], (UINT64) pSampleStreamingSession,
+                                                    sampleBandwidthEstimationHandler));
     }
+
+    DLOGI("[KVS Master] Successfully added %u video transceivers", NUM_VIDEO_TRACKS);
 
     pSampleStreamingSession->pVideoRtcRtpTransceiver = gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[0];
 
@@ -89,7 +91,9 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
     UINT32 i, trackIdx;
     UINT64 startTime, lastFrameTime, elapsed;
     BOOL usePerTrackDirs = FALSE;
+    BOOL trackSentFirstFrame[NUM_VIDEO_TRACKS];
 
+    MEMSET(trackSentFirstFrame, 0x00, SIZEOF(trackSentFirstFrame));
     MEMSET(fileIndex, 0x00, SIZEOF(fileIndex));
     MEMSET(pFrameBuffers, 0x00, SIZEOF(pFrameBuffers));
     MEMSET(frameBufferSizes, 0x00, SIZEOF(frameBufferSizes));
@@ -127,8 +131,8 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
 
             if (frameSize > frameBufferSizes[trackIdx]) {
                 pFrameBuffers[trackIdx] = (PBYTE) MEMREALLOC(pFrameBuffers[trackIdx], frameSize);
-                CHK_ERR(pFrameBuffers[trackIdx] != NULL, STATUS_NOT_ENOUGH_MEMORY,
-                        "[KVS Master] Failed to allocate video frame buffer for track %u", trackIdx);
+                CHK_ERR(pFrameBuffers[trackIdx] != NULL, STATUS_NOT_ENOUGH_MEMORY, "[KVS Master] Failed to allocate video frame buffer for track %u",
+                        trackIdx);
                 frameBufferSizes[trackIdx] = frameSize;
             }
 
@@ -146,7 +150,10 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
                     PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
                     pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
                 }
-                if (status == STATUS_SRTP_NOT_READY_YET) {
+                if (status == STATUS_SUCCESS && !trackSentFirstFrame[trackIdx]) {
+                    DLOGI("[KVS Master] First frame sent on video track %u", trackIdx);
+                    trackSentFirstFrame[trackIdx] = TRUE;
+                } else if (status == STATUS_SRTP_NOT_READY_YET) {
                     fileIndex[trackIdx] = 0;
                 } else if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() for track %u failed with 0x%08x", trackIdx, status);
