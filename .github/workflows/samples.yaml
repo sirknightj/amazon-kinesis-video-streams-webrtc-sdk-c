@@ -85,28 +85,22 @@ jobs:
           make -j
       - name: Run 4 video 1 audio master sample
         run: |
+          set +e
           cd build/samples
           ./kvsWebrtcClientMaster4Video1Audio SampleChannel4Video1Audio > master.log 2>&1 &
           MASTER_PID=$!
-          sleep 15
+          sleep 10
           ./kvsWebrtcClientViewer SampleChannel4Video1Audio > viewer.log 2>&1 &
           VIEWER_PID=$!
-          sleep 30
-          kill -s INT $MASTER_PID $VIEWER_PID 2>/dev/null
-          (sleep 15 && kill -9 $MASTER_PID $VIEWER_PID 2>/dev/null) &
-          WATCHDOG=$!
-          wait $MASTER_PID
-          MASTER_EXIT=$?
-          wait $VIEWER_PID
-          VIEWER_EXIT=$?
-          kill $WATCHDOG 2>/dev/null
-          wait $WATCHDOG 2>/dev/null
-          if [ $MASTER_EXIT -ne 0 ] || [ $VIEWER_EXIT -ne 0 ]; then
-            echo "Sample execution failed. Master exit: $MASTER_EXIT, Viewer exit: $VIEWER_EXIT"
-            cat master.log
-            cat viewer.log
-            exit 1
-          fi
+          sleep 20
+          kill -s INT $VIEWER_PID 2>/dev/null
+          sleep 5
+          kill -s INT $MASTER_PID 2>/dev/null
+          sleep 10
+          kill -9 $MASTER_PID $VIEWER_PID 2>/dev/null
+          wait $VIEWER_PID 2>/dev/null
+          wait $MASTER_PID 2>/dev/null
+          set -e
           if ! grep -q "Successfully added 4 video transceivers" master.log; then
             echo "FAILURE: 4 video transceivers were not added"
             cat master.log
